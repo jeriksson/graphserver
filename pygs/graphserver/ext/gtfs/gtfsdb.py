@@ -125,7 +125,8 @@ class GTFSDatabase:
                            ("shape_id", None, None)))
     ROUTES_DEF = ("routes", (("route_id", None, None),
                              ("route_short_name", None, None),
-                             ("route_long_name", None, None)) )
+                             ("route_long_name", None, None),
+                             ("route_type", None, None)))
     STOP_TIMES_DEF = ("stop_times", (("trip_id", None, None), 
                                      ("arrival_time", "INTEGER", parse_gtfs_time),
                                      ("departure_time", "INTEGER", parse_gtfs_time),
