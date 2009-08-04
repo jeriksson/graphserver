@@ -8,8 +8,12 @@ WalkOptions*
 woNew() {
     WalkOptions* ret = (WalkOptions*)malloc( sizeof(WalkOptions) );
     ret->transfer_penalty = 0;
+    ret->turn_penalty = 0;
     ret->walking_speed = 0.85; //meters per second
     ret->walking_reluctance = 1;
+    ret->uphill_slowness = 0.08; //Factor by which someone's speed is slowed going uphill. A 15 mph rider on a flat will climb at 1.2 mph, for example.
+    ret->downhill_fastness = 1.96; // s/m. Number of seconds regained for every foot dropped. 10 feet dropped will gain you six seconds.
+    ret->hill_reluctance = 1.5; //Factor by which an uphill stretch is penalized, in addition to whatever time is lost by simply gaining.
     ret->max_walk = 10000; //meters
     ret->walking_overage = 0.1;
     return ret;
@@ -50,6 +54,36 @@ woSetWalkingReluctance( WalkOptions* this, float walking_reluctance ) {
     this->walking_reluctance = walking_reluctance;
 }
 
+float
+woGetUphillSlowness( WalkOptions* this ) {
+    return this->uphill_slowness;
+}
+
+void
+woSetUphillSlowness( WalkOptions* this, float uphill_slowness ) {
+    this->uphill_slowness = uphill_slowness;
+}
+
+float
+woGetDownhillFastness( WalkOptions* this ) {
+    return this->downhill_fastness;
+}
+
+void
+woSetDownhillFastness( WalkOptions* this, float downhill_fastness ) {
+    this->downhill_fastness = downhill_fastness;
+}
+
+float
+woGetHillReluctance( WalkOptions* this ) {
+    return this->hill_reluctance;
+}
+
+void
+woSetHillReluctance( WalkOptions* this, float hill_reluctance ) {
+    this->hill_reluctance = hill_reluctance;
+}
+
 int
 woGetMaxWalk( WalkOptions* this ) {
     return this->max_walk;
@@ -70,6 +104,16 @@ woSetWalkingOverage( WalkOptions* this, float walking_overage ) {
     this->walking_overage = walking_overage;
 }
 
+int
+woGetTurnPenalty( WalkOptions* this ) {
+    return this->turn_penalty;
+}
+
+void
+woSetTurnPenalty( WalkOptions* this, int turn_penalty ) {
+    this->turn_penalty = turn_penalty;
+}
+
 //STATE FUNCTIONS
 State*
 stateNew(int n_agencies, long time) {
@@ -78,9 +122,8 @@ stateNew(int n_agencies, long time) {
   ret->weight = 0;
   ret->dist_walked = 0;
   ret->num_transfers = 0;
-  ret->prev_edge_name = NULL;
   ret->trip_id = NULL;
-  ret->prev_edge_type = PL_NONE;
+  ret->prev_edge = NULL;
   ret->n_agencies = n_agencies;
   ret->service_periods = (ServicePeriod**)malloc(n_agencies*sizeof(ServicePeriod*)); //hash of strings->calendardays
 
@@ -122,11 +165,8 @@ stateGetDistWalked( State* this ) { return this->dist_walked; }
 int
 stateGetNumTransfers( State* this ) { return this->num_transfers; }
 
-edgepayload_t
-stateGetPrevEdgeType( State* this ) { return this->prev_edge_type; }
-
-char*
-stateGetPrevEdgeName( State* this ) { return this->prev_edge_name; }
+EdgePayload*
+stateGetPrevEdge( State* this ) { return this->prev_edge; }
 
 char*
 stateGetTripId( State* this ) { return this->trip_id; }
@@ -153,10 +193,7 @@ void
 stateSetServicePeriod( State* this,  int agency, ServicePeriod* cal ) { this->service_periods[agency] = cal; }
 
 void
-stateSetPrevEdgeName( State* this, char* name ) { this->prev_edge_name = name; }
-
-void
-stateSetPrevEdgeType( State* this, edgepayload_t type ) { this->prev_edge_type = type; }
+stateSetPrevEdge( State* this, EdgePayload* edge ) { this->prev_edge = edge; }
 
 //--------------------EDGEPAYLOAD FUNCTIONS-------------------
 
@@ -179,12 +216,6 @@ epDestroy( EdgePayload* this ) {
   switch( this->type ) {
     case PL_STREET:
       streetDestroy( (Street*)this );
-      break;
-    case PL_TRIPHOPSCHED:
-      thsDestroy( (TripHopSchedule*)this );
-      break;
-    case PL_TRIPHOP:
-      triphopDestroy( (TripHop*)this );
       break;
     case PL_LINK:
       linkDestroy( (Link*)this );
@@ -236,36 +267,6 @@ epWalkBack( EdgePayload* this, State* params, WalkOptions* options ) {
   return this->walkBack( this, params, options );
 }
 
-EdgePayload*
-epCollapse( EdgePayload* this, State* params ) {
-  switch( this->type ) {
-    case PL_TRIPHOPSCHED:
-      return (EdgePayload*)thsCollapse( (TripHopSchedule*)this, params) ;
-    case PL_EXTERNVALUE:
-      return (EdgePayload*)cpCollapse( (CustomPayload*)this, params );
-    default:
-      return (EdgePayload*)this;
-  }
-}
-
-EdgePayload*
-epCollapseBack( EdgePayload* this, State* params ) {
-  switch( this->type ) {
-    case PL_TRIPHOPSCHED:
-      return (EdgePayload*)thsCollapseBack( (TripHopSchedule*)this, params);
-    case PL_EXTERNVALUE:
-      return (EdgePayload*)cpCollapseBack( (CustomPayload*)this, params );
-    default:
-      return (EdgePayload*)this;
-  }
-}
-
-//EdgePayload*
-//epCollapse( EdgePayload* this, State* param );
-
-//EdgePayload*
-//epCollapseBack( EdgePayload* this, State* param );
-
 //LINK FUNCTIONS
 Link*
 linkNew() {
@@ -305,12 +306,24 @@ streetNew(const char *name, double length) {
   ret->name = (char*)malloc((strlen(name)+1)*sizeof(char));
   strcpy(ret->name, name);
   ret->length = length;
+  ret->rise = 0;
+  ret->fall = 0;
+  ret->slog = 1;
+  ret->way = 0;
     
   //bind functions to methods
   ret->walk = &streetWalk;
   ret->walkBack = &streetWalkBack;
 
   return ret;
+}
+
+Street*
+streetNewElev(const char *name, double length, float rise, float fall) {
+    Street* ret = streetNew( name, length );
+    ret->rise = rise;
+    ret->fall = fall;
+    return ret;
 }
 
 void
@@ -327,6 +340,36 @@ streetGetName(Street* this) {
 double
 streetGetLength(Street* this) {
     return this->length;
+}
+
+float
+streetGetRise(Street* this) {
+    return this->rise;
+}
+
+float
+streetGetFall(Street* this) {
+    return this->fall;
+}
+
+float
+streetGetSlog(Street* this) {
+    return this->slog;
+}
+
+void
+streetSetSlog(Street* this, float slog) {
+    this->slog = slog;
+}
+
+long
+streetGetWay(Street* this) {
+    return this->way;   
+}
+
+void
+streetSetWay(Street* this, long way) {
+    this->way = way;
 }
 
 //EGRESS FUNCTIONS
@@ -1372,212 +1415,16 @@ alWalkBack( EdgePayload* superthis, State* params, WalkOptions* options ) {
     
 }
 
-//TRIPHOP FUNCTIONS
-
-//tests the order of the hops, by terminus time, for use with sorting functions
-int hopcmp(const void* a, const void* b) {
-  TripHop** aa = (TripHop**)a;
-  TripHop** bb = (TripHop**)b;
-  
-  TripHop* ac = *aa;
-  TripHop* bc = *bb;
-  if(ac->arrive < bc->arrive)
-    return -1;
-  else if(ac->arrive > bc->arrive)
-    return 1;
-  else {
-    return 0;
-  }
-}
-
-/*
- * Receives n tuples consisting if [depart, arrive, trip_id], all associated with one service_id
- */
-
-TripHopSchedule*
-thsNew( int *departs, int *arrives, char **trip_ids, int n, ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency ) {
-  TripHopSchedule* ret = (TripHopSchedule*)malloc(sizeof(TripHopSchedule));
-  ret->type = PL_TRIPHOPSCHED;
-  ret->hops = (TripHop**)malloc(n*sizeof(TripHop*));
-  ret->n = n;
-  ret->service_id = service_id;
-  ret->calendar = calendar;
-  ret->timezone = timezone;
-  ret->agency = agency;
-
-  int i;
-  for(i=0; i<n; i++) {
-    ret->hops[i] = triphopNew( departs[i], arrives[i], trip_ids[i], calendar, timezone, agency, service_id );
-  }
-
-  //make sure departure and arrival arrays are sorted, as they're subjected to a binsearch
-  qsort(ret->hops, n, sizeof(TripHop*), hopcmp);
-  
-  //bind functions to methods
-  ret->walk = &thsWalk;
-  ret->walkBack = &thsWalkBack;
-
-  return ret; // return NULL;
-}
-
-TripHop*
-triphopNew(int depart, int arrive, char* trip_id, ServiceCalendar* calendar, Timezone* timezone, int agency, ServiceId service_id) {
-    TripHop* ret = (TripHop*)malloc(sizeof(TripHop));
-    
-    ret->type = PL_TRIPHOP;
-    ret->depart = depart;
-    ret->arrive = arrive;
-    ret->transit = (arrive-depart);
-    int n = strlen(trip_id)+1;
-    ret->trip_id = (char*)malloc(sizeof(char)*(n));
-    memcpy(ret->trip_id, trip_id, n);
-    ret->calendar = calendar;
-    ret->timezone = timezone;
-    ret->agency = agency;
-    ret->service_id = service_id;
-    
-  //bind functions to methods
-  ret->walk = &triphopWalk;
-  ret->walkBack = &triphopWalkBack;
-    
-    return ret;
-}
-
-//GEOM FUNTIONS
-
-Geom*
-geomNew (char * geomdata) {
-
-        if (geomdata==NULL)
-		return NULL;
-	Geom* tmp=(Geom *)malloc(sizeof(Geom));
-        tmp->data=strdup(geomdata);
-	return tmp;
-}
-
-void
-geomDestroy(Geom* this){
-
-	if (this!=NULL)
-	{
-		if (this->data!=NULL) free(this->data);
-		free(this);
-		this=NULL;
-	}
-}
-
-
-//COORDINATES FUNTIONS
-Coordinates*
-coordinatesNew(long latitude,long length)
-{
-	Coordinates* ret=(Coordinates*)malloc(sizeof(Coordinates));
-	ret->lat=latitude;
-	ret->lon=length;
-	return ret;
-}
-
-void
-coordinatesDestroy(Coordinates* this){
-	if (this!=NULL) free(this);
-}
-
-Coordinates*
-coordinatesDup(Coordinates* this) {
-	Coordinates* ret=(Coordinates*)malloc(sizeof(Coordinates));
-	memcpy(ret,this,sizeof( Coordinates ));
-	return ret;
-}
-
-//DEBUG CODE
-void
-thsPrintHops(TripHopSchedule* this) {
-  int i;
-  printf("--==--\n");
-  for(i=0; i<this->n; i++) {
-    printf("Hop: %d, %d, %s\n", this->hops[i]->depart, this->hops[i]->arrive, this->hops[i]->trip_id);
-  }
-  printf("--==--\n");
-}
-
-void
-thsDestroy(TripHopSchedule* this) {
-    int i;
-  	for(i=0; i<this->n; i++) {
-        //free( this->hops[i]->trip_id );
-        triphopDestroy(this->hops[i]);
-  	}
-
-  	free(this->hops);
-  	free(this);
-}
-
-ServiceCalendar*
-thsGetCalendar(TripHopSchedule* this ) { return this->calendar; }
-
-void
-triphopDestroy(TripHop* tokill) {
-  free(tokill->trip_id);
-  free(tokill);
-}
-
-int
-thsGetN(TripHopSchedule* this) {
-    return this->n;
-}
-
-ServiceId
-thsGetServiceId(TripHopSchedule* this) {
-    return this->service_id;
-}
-
-Timezone*
-thsGetTimezone(TripHopSchedule* this) {
-    return this->timezone;
-}
-
-int
-triphopDepart( TripHop* this ) { return this->depart; }
-
-int
-triphopArrive( TripHop* this ) { return this->arrive; }
-
-int
-triphopTransit( TripHop* this ) { return this->transit; }
-
-char *
-triphopTripId( TripHop* this ) { return this->trip_id; }
-
-ServiceCalendar*
-triphopCalendar( TripHop* this ) { return this->calendar; }
-
-Timezone*
-triphopTimezone( TripHop* this ) { return this->timezone; }
-
-int
-triphopAuthority( TripHop* this ) { return this->agency; }
-
-int
-triphopServiceId( TripHop* this ) { return this->service_id; }
-
-TripHop*
-thsGetHop(TripHopSchedule* this, int i) { return this->hops[i]; }
-
-
 // CUSTOM Payload Functions
 
 PayloadMethods*
 defineCustomPayloadType(void (*destroy)(void*),
 						State* (*walk)(void*,State*,WalkOptions*),
-						State* (*walkback)(void*,State*,WalkOptions*),
-						EdgePayload* (*collapse)(void*,State*),
-						EdgePayload* (*collapseBack)(void*,State*)) {
+						State* (*walkback)(void*,State*,WalkOptions*)) {
 	PayloadMethods* this = (PayloadMethods*)malloc(sizeof(PayloadMethods));
 	this->destroy = destroy;
 	this->walk = walk;
 	this->walkBack = walkback;
-	this->collapse = collapse;
-	this->collapseBack = collapseBack;
 	return this;
 }
 
@@ -1614,28 +1461,14 @@ cpMethods( CustomPayload* this ) {
 State*
 cpWalk(CustomPayload* this, State* params, WalkOptions* walkoptions) {
 	State* s = this->methods->walk(this->soul, params, walkoptions);
-	s->prev_edge_type = PL_EXTERNVALUE;
+	s->prev_edge = (EdgePayload*)this;
 	return s;
 }
 State*
 cpWalkBack(CustomPayload* this, State* params, WalkOptions* walkoptions) {
 	State* s = this->methods->walkBack(this->soul, params, walkoptions);
-	s->prev_edge_type = PL_EXTERNVALUE;
+	s->prev_edge = (EdgePayload*)this;
 	return s;
-}
-
-EdgePayload*
-cpCollapse(CustomPayload* this, State* params) {
-	if (this->methods->collapse)
-		return this->methods->collapse(this->soul, params);
-	return (EdgePayload*)this;
-}
-
-EdgePayload*
-cpCollapseBack(CustomPayload* this, State* params) {
-	if (this->methods->collapseBack)
-		return this->methods->collapseBack(this->soul, params);
-	return (EdgePayload*)this;
 }
 
 #undef ROUTE_REVERSE

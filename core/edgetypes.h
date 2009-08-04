@@ -7,10 +7,12 @@
 #include "hashtable_itr.h"
 #include "statetypes.h"
 
+typedef struct EdgePayload EdgePayload;
+
 typedef enum {    
   PL_STREET,
-  PL_TRIPHOPSCHED,
-  PL_TRIPHOP,
+  PL_TRIPHOPSCHED_DEPRIC,
+  PL_TRIPHOP_DEPRIC,
   PL_LINK,
   PL_EXTERNVALUE,
   PL_NONE, // 5
@@ -31,8 +33,12 @@ typedef struct WalkOptions {
     int transfer_penalty;
     float walking_speed;
     float walking_reluctance;
+    float uphill_slowness;
+    float downhill_fastness;
+    float hill_reluctance;    
     int max_walk;
     float walking_overage;
+    int turn_penalty;
 } WalkOptions;
 
 WalkOptions*
@@ -71,6 +77,12 @@ woGetWalkingOverage( WalkOptions* this );
 void
 woSetWalkingOverage( WalkOptions* this, float walking_overage );
 
+int
+woGetTurnPenalty( WalkOptions* this );
+
+void
+woSetTurnPenalty( WalkOptions* this, int turn_penalty );
+
 //---------------DECLARATIONS FOR STATE CLASS---------------------
 
 typedef struct State {
@@ -78,8 +90,7 @@ typedef struct State {
    long          weight;
    double        dist_walked;    //meters
    int           num_transfers;
-   edgepayload_t prev_edge_type;
-   char*         prev_edge_name;
+   EdgePayload*  prev_edge;
    char*         trip_id;
    int           n_agencies;
    ServicePeriod** service_periods;
@@ -106,11 +117,8 @@ stateGetDistWalked( State* this );
 int
 stateGetNumTransfers( State* this );
 
-edgepayload_t
-stateGetPrevEdgeType( State* this );
-
-char*
-stateGetPrevEdgeName( State* this );
+EdgePayload*
+stateGetPrevEdge( State* this );
 
 char*
 stateGetTripId( State* this );
@@ -137,18 +145,15 @@ void
 stateSetNumTransfers( State* this, int n);
 
 void
-stateSetPrevEdgeType( State* this, edgepayload_t type );
-
-void
-stateSetPrevEdgeName( State* this, char* name );
+stateSetPrevEdge( State* this, EdgePayload* edge );
 
 //---------------DECLARATIONS FOR EDGEPAYLOAD CLASS---------------------
 
-typedef struct EdgePayload {
+struct EdgePayload {
   edgepayload_t type;
   State* (*walk)(struct EdgePayload*, struct State*, struct WalkOptions*);
   State* (*walkBack)(struct EdgePayload*, struct State*, struct WalkOptions*);
-} EdgePayload;
+} ;
 
 EdgePayload*
 epNew( edgepayload_t type, void* payload );
@@ -164,12 +169,6 @@ epWalk( EdgePayload* this, State* param, WalkOptions* options );
 
 State*
 epWalkBack( EdgePayload* this, State* param, WalkOptions* options );
-
-EdgePayload*
-epCollapse( EdgePayload* this, State* param );
-
-EdgePayload*
-epCollapseBack( EdgePayload* this, State* param );
 
 //---------------DECLARATIONS FOR LINK  CLASS---------------------
 
@@ -318,10 +317,17 @@ typedef struct Street {
     
    char* name;
    double length;
+   float rise;
+   float fall;
+   float slog;
+   long way;
 } Street;
 
 Street*
 streetNew(const char *name, double length);
+
+Street*
+streetNewElev(const char *name, double length, float rise, float fall);
 
 void
 streetDestroy(Street* tokill);
@@ -337,6 +343,18 @@ streetGetName(Street* this);
 
 double
 streetGetLength(Street* this);
+
+float
+streetGetRise(Street* this);
+
+float
+streetGetFall(Street* this);
+
+long
+streetGetWay(Street* this);
+
+void
+streetSetWay(Street* this, long way);
 
 //---------------DECLARATIONS FOR TRIPBOARD CLASS------------------------------------------
 
@@ -628,131 +646,10 @@ alWalk(EdgePayload* this, State* params, WalkOptions* options);
 inline State*
 alWalkBack(EdgePayload* this, State* params, WalkOptions* options);
 
-//---------------DECLARATIONS FOR TRIPHOPSCHEDULE and TRIPHOP  CLASSES---------------------
-
-#define INFINITY 100000000
-#define SECONDS_IN_WEEK 604800
-#define SECONDS_IN_DAY 86400
-#define SECONDS_IN_HOUR 3600
-#define SECONDS_IN_MINUTE 60
-#define DAYS_IN_WEEK 7
-
-typedef struct TripHopSchedule TripHopSchedule;
-
-typedef struct TripHop {
-  edgepayload_t type;
-  State* (*walk)(struct EdgePayload*, struct State*, struct WalkOptions*);
-  State* (*walkBack)(struct EdgePayload*, struct State*, struct WalkOptions*);
-    
-  int depart;
-  int arrive;
-  int transit;
-  char* trip_id;
-  ServiceCalendar* calendar;
-  Timezone* timezone;
-  int agency;
-  ServiceId service_id;
-} TripHop;
-
-struct TripHopSchedule {
-  edgepayload_t type;
-  State* (*walk)(struct EdgePayload*, struct State*, struct WalkOptions*);
-  State* (*walkBack)(struct EdgePayload*, struct State*, struct WalkOptions*);
-    
-  int n;
-  TripHop** hops;
-  ServiceId service_id;
-  ServiceCalendar* calendar;
-  Timezone* timezone;
-  int agency;
-};
-
-TripHopSchedule*
-thsNew( int *departs, int *arrives, char **trip_ids, int n, ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency );
-
-void
-thsDestroy(TripHopSchedule* this);
-
-TripHop*
-triphopNew( int depart, int arrive, char* trip_id, ServiceCalendar* calendar, Timezone* timezone, int agency, ServiceId service_id );
-
-void
-triphopDestroy( TripHop* this );
-
-int
-triphopDepart( TripHop* this );
-
-int
-triphopArrive( TripHop* this );
-
-int
-triphopTransit( TripHop* this );
-
-char *
-triphopTripId( TripHop* this );
-
-ServiceCalendar*
-triphopCalendar( TripHop* this );
-
-Timezone*
-triphopTimezone( TripHop* this );
-
-int
-triphopAuthority( TripHop* this );
-
-int
-triphopServiceId( TripHop* this );
-
-
-inline State*
-thsWalk(EdgePayload* superthis, State* params, WalkOptions* options);
-
-inline State*
-thsWalkBack(EdgePayload* superthis, State* params, WalkOptions* options);
-
-inline State*
-triphopWalk( EdgePayload* superthis, State* params, WalkOptions* options);
-
-inline State*
-triphopWalkBack( EdgePayload* superthis, State* params, WalkOptions* options );
-
-inline TripHop*
-thsCollapse( TripHopSchedule* this, State* params );
-
-inline TripHop*
-thsCollapseBack( TripHopSchedule* this, State* params );
-
-//convert time, N seconds since the epoch, to seconds since midnight within the span of the service day
-inline long
-thsSecondsSinceMidnight( TripHopSchedule* this, State* param );
-
-inline TripHop*
-thsGetNextHop(TripHopSchedule* this, long time);
-
-inline TripHop*
-thsGetLastHop(TripHopSchedule* this, long time);
-
-int
-thsGetN(TripHopSchedule* this);
-
-ServiceId
-thsGetServiceId(TripHopSchedule* this);
-
-TripHop*
-thsGetHop(TripHopSchedule* this, int i);
-
-ServiceCalendar*
-thsGetCalendar(TripHopSchedule* this );
-
-Timezone*
-thsGetTimezone(TripHopSchedule* this );
-
 typedef struct PayloadMethods {
 	void (*destroy)(void*);
 	State* (*walk)(void*,State*,WalkOptions*);
 	State* (*walkBack)(void*,State*,WalkOptions*);
-	EdgePayload* (*collapse)(void*,State*);
-	EdgePayload* (*collapseBack)(void*,State*);
 	//char* (*to_str)(void*);
 } PayloadMethods;
 
@@ -765,9 +662,7 @@ typedef struct CustomPayload {
 PayloadMethods*
 defineCustomPayloadType(void (*destroy)(void*),
 						State* (*walk)(void*,State*,WalkOptions*),
-						State* (*walkback)(void*,State*,WalkOptions*),
-						EdgePayload* (*collapse)(void*,State*),
-						EdgePayload* (*collapseBack)(void*,State*));
+						State* (*walkback)(void*,State*,WalkOptions*));
 
 
 void
@@ -790,39 +685,5 @@ cpWalk(CustomPayload* this, State* params, struct WalkOptions* walkoptions);
 
 State*
 cpWalkBack(CustomPayload* this, State* params, struct WalkOptions* walkoptions);
-
-EdgePayload*
-cpCollapse(CustomPayload* this, State* params);
-
-EdgePayload*
-cpCollapseBack(CustomPayload* this, State* params);
-
-// ------------ DECLARATIONS FOR GEOM --------------------------
-
-typedef struct Geom {
-	char *data;
-}Geom;
-
-Geom*
-geomNew (char * geomdata);
-
-void
-geomDestroy(Geom* this);
-
-
-//--------------DECLARATIONS FOR COORDINATES---------------------
-typedef struct Coordinates {
-   long lat;
-   long lon;
-}Coordinates;
-
-Coordinates*
-coordinatesNew(long latitude,long length);
-
-void
-coordinatesDestroy(Coordinates* this);
-
-Coordinates*
-coordinatesDup(Coordinates* this);
 
 #endif

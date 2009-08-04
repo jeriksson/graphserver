@@ -1,7 +1,7 @@
 
 import atexit
 from ctypes import cdll, CDLL, pydll, PyDLL, CFUNCTYPE
-from ctypes import string_at, byref, c_int, c_long, c_size_t, c_char_p, c_double, c_void_p, py_object
+from ctypes import string_at, byref, c_int, c_long, c_float, c_size_t, c_char_p, c_double, c_void_p, py_object, c_bool
 from ctypes import Structure, pointer, cast, POINTER, addressof
 from ctypes.util import find_library
 
@@ -123,6 +123,7 @@ pycapi(lgs.gShortestPathTreeRetro,c_void_p, [c_void_p, c_char_p, c_char_p, c_voi
 pycapi(lgs.gSize,c_void_p, [c_long])
 pycapi(lgs.sptPathRetro,c_void_p, [c_void_p, c_char_p, c_void_p])
 pycapi(lgs.gShortestPathTreeRetro,c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p, c_int, c_long])
+pycapi(lgs.gSetVertexEnabled,c_void_p, [c_void_p, c_char_p, c_bool])
 
 # SERVICE PERIOD API 
 pycapi(lgs.spNew, c_void_p, [c_long, c_long, c_int, c_void_p])
@@ -180,8 +181,6 @@ pycapi(lgs.eWalkBack, c_void_p, [c_void_p, c_void_p, c_int])
 pycapi(lgs.epGetType, c_int, [c_void_p])
 pycapi(lgs.epWalk, c_void_p, [c_void_p, c_void_p, c_int])
 pycapi(lgs.epWalkBack, c_void_p, [c_void_p, c_void_p, c_int])
-pycapi(lgs.epCollapse, c_void_p, [c_void_p, c_void_p])
-pycapi(lgs.epCollapseBack, c_void_p, [c_void_p, c_void_p])
 
 #LINKNODE API
 pycapi(lgs.linkNew, c_void_p)
@@ -191,6 +190,7 @@ pycapi(lgs.linkWalkBack, c_void_p, [c_void_p, c_void_p])
 
 #STREET API
 pycapi(lgs.streetNew, c_void_p, [c_char_p, c_double])
+pycapi(lgs.streetNewElev, c_void_p, [c_char_p, c_double, c_float, c_float])
 pycapi(lgs.streetDestroy, c_void_p)
 pycapi(lgs.streetWalk, c_void_p, [c_void_p, c_void_p])
 pycapi(lgs.streetWalkBack, c_void_p, [c_void_p, c_void_p])
@@ -200,21 +200,6 @@ pycapi(lgs.egressNew, c_void_p, [c_char_p, c_double])
 pycapi(lgs.egressDestroy, c_void_p)
 pycapi(lgs.egressWalk, c_void_p, [c_void_p, c_void_p])
 pycapi(lgs.egressWalkBack, c_void_p, [c_void_p, c_void_p])
-
-#TRIPHOPSCHEDULE API
-pycapi(lgs.thsNew, c_void_p) # args are dynamic, and not specified
-pycapi(lgs.thsDestroy, c_void_p)
-pycapi(lgs.thsGetHop, c_void_p, [c_void_p, c_int])
-pycapi(lgs.thsWalk, c_void_p, [c_void_p, c_void_p, c_int])
-pycapi(lgs.thsWalkBack, c_void_p, [c_void_p, c_void_p, c_int])
-pycapi(lgs.thsCollapse, c_void_p, [c_void_p, c_void_p])
-pycapi(lgs.thsCollapseBack, c_void_p, [c_void_p, c_void_p])
-pycapi(lgs.thsGetNextHop, c_void_p, [c_void_p, c_long])
-pycapi(lgs.thsGetLastHop, c_void_p, [c_void_p, c_long])
-
-#TRIPHOP API
-pycapi(lgs.triphopWalk, c_void_p, [c_void_p, c_void_p, c_int])
-pycapi(lgs.triphopWalkBack, c_void_p, [c_void_p, c_void_p, c_int])
 
 #HEADWAY API
 pycapi(lgs.headwayWalk, c_void_p, [c_void_p, c_void_p, c_int])
@@ -245,8 +230,6 @@ class PayloadMethodTypes:
     destroy = CFUNCTYPE(c_void_p, py_object)
     walk = CFUNCTYPE(c_void_p, py_object, c_void_p, c_void_p)
     walk_back = CFUNCTYPE(c_void_p, py_object, c_void_p, c_void_p)
-    collapse = CFUNCTYPE(c_void_p, py_object, c_void_p)
-    collapse_back = CFUNCTYPE(c_void_p, py_object, c_void_p)
     
 pycapi(lgs.cpSoul, py_object, [c_void_p])
 # args are not specified to allow for None

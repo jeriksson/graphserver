@@ -55,6 +55,10 @@ def load_bundle_to_boardalight_graph(g, agency_namespace, bundle, service_id, sc
     if len(stop_time_bundles)<2:
         return
         
+    # If there are no stop_times in a bundle on this service day, there is nothing to load
+    if len(stop_time_bundles[0])==0:
+        return
+        
     #add board edges
     for i, stop_time_bundle in enumerate(stop_time_bundles[:-1]):
         
@@ -93,7 +97,7 @@ def load_bundle_to_boardalight_graph(g, agency_namespace, bundle, service_id, sc
     for j, crossing_time in enumerate(bundle.pattern.crossings):
         c = Crossing( crossing_time )
         g.add_edge( "psv-%s-%03d-%03d"%(agency_namespace,bundle.pattern.pattern_id,j), "psv-%s-%03d-%03d"%(agency_namespace,bundle.pattern.pattern_id,j+1), c )
-
+            
 def load_gtfsdb_to_boardalight_graph(g, agency_namespace, gtfsdb, agency_id, service_ids, reporter=sys.stdout):
     
     # get graphserver.core.Timezone and graphserver.core.ServiceCalendars from gtfsdb for agency with given agency_id
@@ -170,28 +174,73 @@ def link_nearby_stops(g, gtfsdb, range=0.05, obstruction=1.4):
             
             g.add_edge( "sta-%s"%stop_id1, "sta-%s"%stop_id2, Street("walk", dd) )
             g.add_edge( "sta-%s"%stop_id2, "sta-%s"%stop_id1, Street("walk", dd) )
-            
 
-def load_streets_to_graph(g, osmdb, reporter=None):
+def profile_rise_fall(profile):
+    rise = 0
+    fall = 0
+    for (s1, e1), (s2,e2) in cons(profile):
+        diff = e2-e1
+        if diff>0:
+            rise += diff
+        elif diff<0:
+            fall -= diff
+    return (rise,fall)
+
+def load_streets_to_graph(g, osmdb, profiledb=None, slogs={}, reporter=None ):
     
-    n_ways = osmdb.count_ways()
+    n_edges = osmdb.count_edges()
     
-    for i, way in enumerate( osmdb.ways() ):
+    street_id_counter = 0
+    street_names = {}
+    for i, (id, parent_id, node1, node2, distance, geom, tags) in enumerate( osmdb.edges() ):
         
-        if reporter and i%(n_ways//100+1)==0: reporter.write( "%d/%d ways loaded\n"%(i, n_ways))
+        if reporter and i%(n_edges//100+1)==0: reporter.write( "%d/%d edges loaded\n"%(i, n_edges))
         
-        distance = sum( [vincenty(y1,x1,y2,x2) for (x1,y1), (x2,y2) in cons(way.geom)] )
-        
-        vertex1_label = "osm-%s"%way.nds[0]
-        vertex2_label = "osm-%s"%way.nds[-1]
-        
-        x1, y1 = way.geom[0]
-        x2, y2 = way.geom[-1]
-        
+        # insert end vertices of edge to graph
+        vertex1_label = "osm-%s"%node1
+        vertex2_label = "osm-%s"%node2
         g.add_vertex( vertex1_label )
         g.add_vertex( vertex2_label )
-        g.add_edge( vertex1_label, vertex2_label, Street( way.id, distance ) )
-        g.add_edge( vertex2_label, vertex1_label, Street( way.id, distance ) )
+        
+        if node1 == "57808625":
+            print (id, parent_id, node1, node2, distance, geom, tags)
+            exit()
+        
+        # Find rise/fall of edge, if profiledb is given
+        rise=0
+        fall=0
+        if profiledb:
+            profile = profiledb.get( id )
+            if profile:
+                rise, fall = profile_rise_fall( profile )
+                
+        # create ID for the way's street
+        street_name = tags.get("name")
+        if street_name is None:
+            street_id_counter += 1
+            street_id = street_id_counter
+        else:
+            if street_name not in street_names:
+                street_id_counter += 1
+                street_names[street_name] = street_id_counter
+            street_id = street_names[street_name]
+        
+        # Create edges to be inserted into graph
+        s1 = Street( id, distance, rise, fall )
+        s2 = Street( id, distance, fall, rise )
+        s1.way = street_id
+        s2.way = street_id
+        
+        # See if the way's highway tag is penalized with a 'slog' value; if so, set it in the edges
+        slog = slogs.get( tags.get("highway") )
+        if slog:
+            s1.slog = s2.slog = slog
+        
+        # Add the forward edge and the return edge if the edge is not oneway
+        g.add_edge( vertex1_label, vertex2_label, s1 )
+        oneway = tags.get("oneway")
+        if oneway != "true" and oneway != "yes":
+            g.add_edge( vertex2_label, vertex1_label, s2 )
         
 def load_transit_street_links_to_graph( g, osmdb, gtfsdb, reporter=None ):
     n = gtfsdb.count_stops()
