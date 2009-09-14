@@ -3,7 +3,7 @@ try:
 except ImportError:
     #so I can run this script from the same folder
     from gsdll import lgs, libc, cproperty, ccast, CShadow, instantiate, PayloadMethodTypes
-from ctypes import string_at, byref, c_int, c_long, c_size_t, c_char_p, c_double, c_void_p, py_object, c_float, c_bool
+from ctypes import string_at, byref, c_int, c_long, c_size_t, c_char_p, c_double, c_void_p, py_object, c_float
 from ctypes import Structure, pointer, cast, POINTER, addressof
 from _ctypes import Py_INCREF, Py_DECREF
 from time import asctime, gmtime
@@ -72,6 +72,11 @@ class Graph(CShadow):
         self.check_destroyed()
         
         return self._cadd_vertex(self.soul, label)
+        
+    def remove_vertex(self, label, free_vertex_payload, free_edge_payload):
+        #void gRemoveVertex( Graph* this, char *label, int free_vertex_payload, int free_edge_payloads );
+        
+        return self._cremove_vertex(self.soul, label, free_vertex_payload, free_edge_payload)
         
     def get_vertex(self, label):
         #Vertex* gGetVertex( Graph* this, char *label );
@@ -401,6 +406,9 @@ class Vertex(CShadow):
     def get_incoming_edge(self,i):
         self.check_destroyed()
         return self._edges(self._cincoming_edges, i)
+        
+    def __hash__(self):
+        return int(self.soul)
 
 class Edge(CShadow, Walkable):
     def __init__(self, from_v, to_v, payload):
@@ -429,7 +437,7 @@ class Edge(CShadow, Walkable):
         return self._cwalk(self.soul, state.soul, walk_options.soul)
         
     thickness = cproperty(lgs.eGetThickness, c_long, setter=lgs.eSetThickness)
-    enabled = cproperty(lgs.eGetEnabled, c_bool, setter=lgs.eSetEnabled)
+    enabled = cproperty(lgs.eGetEnabled, c_int, setter=lgs.eSetEnabled)
 
 
 class ListNode(CShadow):
@@ -1288,6 +1296,7 @@ class VertexNotFoundError(Exception): pass
 Graph._cnew = lgs.gNew
 Graph._cdel = lgs.gDestroy
 Graph._cadd_vertex = ccast(lgs.gAddVertex, Vertex)
+Graph._cremove_vertex = lgs.gRemoveVertex
 Graph._cget_vertex = ccast(lgs.gGetVertex, Vertex)
 Graph._cadd_edge = ccast(lgs.gAddEdge, Edge)
 Graph._cshortest_path_tree = ccast(lgs.gShortestPathTree, ShortestPathTree)
