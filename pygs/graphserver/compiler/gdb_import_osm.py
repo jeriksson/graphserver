@@ -5,7 +5,7 @@ from graphserver.core import Street
 from graphserver.ext.osm.osmdb import OSMDB
 import sys
 
-def gdb_import_osm(gdb, osmdb, vertex_namespace):
+def gdb_import_osm(gdb, osmdb, vertex_namespace, slogs):
     cursor = gdb.get_cursor()
 	
     n_edges = osmdb.count_edges()
@@ -55,8 +55,8 @@ def gdb_import_osm(gdb, osmdb, vertex_namespace):
     print "indexing vertices..."
     gdb.index()
 
-if __name__ == '__main__':
-    usage = """usage: python new_gdb.py <graphdb_filename> <osmdb_filename>"""
+def main():
+    usage = """usage: python gdb_import_osm.py <graphdb_filename> <osmdb_filename>"""
     parser = OptionParser(usage=usage)
     parser.add_option("-n", "--namespace", dest="namespace", default="osm",
                       help="prefix all imported vertices with namespace string")
@@ -84,8 +84,11 @@ if __name__ == '__main__':
     osmdb = OSMDB( osmdb_filename )
     gdb = GraphDatabase( graphdb_filename, overwrite=False )
     
-    gdb_import_osm(gdb, osmdb, options.namespace);
+    gdb_import_osm(gdb, osmdb, options.namespace, slogs);
     
     print "done"
-    
+
+if __name__ == '__main__':
+    main()
+
     
