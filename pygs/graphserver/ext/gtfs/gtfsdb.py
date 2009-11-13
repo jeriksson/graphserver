@@ -94,13 +94,19 @@ class TripBundle:
         c = self.gtfsdb.conn.cursor()
         
         query = """
-SELECT stop_times.* FROM stop_times, trips 
-  WHERE stop_times.trip_id = trips.trip_id 
+        SELECT stop_times.trip_id,
+               stop_times.arrival_time,
+               stop_times.departure_time,
+               stop_times.stop_id,
+               stop_times.stop_sequence,
+               stop_times.shape_dist_traveled
+        FROM stop_times, trips 
+        WHERE stop_times.trip_id = trips.trip_id 
         AND trips.trip_id IN (%s) 
         AND trips.service_id = ? 
         AND stop_times.stop_id = ? 
-  ORDER BY departure_time"""%(",".join(["'%s'"%x for x in self.trip_ids]))
-      
+        ORDER BY departure_time"""%(",".join(["'%s'"%x for x in self.trip_ids]))
+        
         c.execute(query, (service_id,str(stop_id)))
         
         return list(c)
@@ -140,7 +146,8 @@ class GTFSDatabase:
     TRIPS_DEF = ("trips", (("route_id",   None, None),
                            ("trip_id",    None, None),
                            ("service_id", None, None),
-                           ("shape_id", None, None)))
+                           ("shape_id", None, None),
+                           ("trip_headsign", None, None)))
     ROUTES_DEF = ("routes", (("route_id", None, None),
                              ("route_short_name", None, None),
                              ("route_long_name", None, None),
@@ -150,7 +157,8 @@ class GTFSDatabase:
                                      ("departure_time", "INTEGER", parse_gtfs_time),
                                      ("stop_id", None, None),
                                      ("stop_sequence", "INTEGER", None),
-                                     ("shape_dist_traveled", "FLOAT", None)))
+                                     ("shape_dist_traveled", "FLOAT", None),
+                                     ("stop_headsign", None, None)))
     STOPS_DEF = ("stops", (("stop_id", None, None),
                            ("stop_name", None, None),
                            ("stop_lat", "FLOAT", None),
