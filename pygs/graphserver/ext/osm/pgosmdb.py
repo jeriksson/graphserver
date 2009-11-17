@@ -2,7 +2,7 @@
 # Class for handling interaction with OSMDB stored in PostgreSQL with PostGIS extensions.
 # Author: James P. Biagioni (jbiagi1@uic.edu)
 # Company: University of Illinois at Chicago
-# Last modified: 9/23/09
+# Last modified: 11/17/09
 #
 
 import psycopg2
@@ -127,8 +127,20 @@ class PostgresGIS_OSMDB:
         # grab database cursor
         cur = conn.cursor()
         
-        # generate query to grab tags for way matching the edge name
-        tags_query = "select tags from ways where id='" + edge_name + "'"
+        # generate query to grab parent_id for edge matching the edge name
+        parent_id_query = "select parent_id from edges where id='" + edge_name + "'"
+        
+        # execute the query
+        cur.execute(parent_id_query)
+        
+        # fetch the first row from the results
+        first_row = cur.fetchone()
+        
+        # grab parent_id from edge
+        parent_id = str(first_row[0])
+        
+        # generate query to grab tags for way matching the parent id
+        tags_query = "select tags from ways where id='" + parent_id + "'"
         
         # execute the query
         cur.execute(tags_query)
@@ -170,11 +182,53 @@ class PostgresGIS_OSMDB:
         # grab database cursor
         cur = conn.cursor()
         
-        # generate query to grab tags and path geometry for way matching the edge name
-        tags_path_query = "select tags, ST_AsText(path) from ways where id='" + edge_name + "'"
+        # generate query to grab parent_id for edge matching the edge name
+        parent_id_query = "select parent_id, start_nd, end_nd from edges where id='" + edge_name + "'"
         
         # execute the query
-        cur.execute(tags_path_query)
+        cur.execute(parent_id_query)
+        
+        # fetch the first row from the results
+        first_row = cur.fetchone()
+        
+        # grab parent_id from edge
+        parent_id = str(first_row[0])
+        
+        # grab start node id from edge
+        start_node_id = str(first_row[1])
+        
+        # grab end node id from edge
+        end_node_id = str(first_row[2])
+        
+        # generate query to grab location for node matching the start node id
+        start_node_query = "select ST_AsText(location) from nodes where id='" + start_node_id + "'"
+        
+        # execute the query
+        cur.execute(start_node_query)
+        
+        # fetch the first row from the results
+        first_row = cur.fetchone()
+        
+        # store start node location
+        start_node_loc = str(first_row[0]).replace('POINT(','').replace(')','')
+        
+        # generate query to grab location for node matching the end node id
+        end_node_query = "select ST_AsText(location) from nodes where id='" + end_node_id + "'"
+        
+        # execute the query
+        cur.execute(end_node_query)
+        
+        # fetch the first row from the results
+        first_row = cur.fetchone()
+        
+        # store end node location
+        end_node_loc = str(first_row[0]).replace('POINT(','').replace(')','')
+        
+        # generate query to grab tags for way matching the parent id
+        tags_query = "select tags from ways where id='" + parent_id + "'"
+        
+        # execute the query
+        cur.execute(tags_query)
         
         # fetch the first row from the results
         first_row = cur.fetchone()
@@ -196,11 +250,11 @@ class PostgresGIS_OSMDB:
             # store an 'Unknown' street name
             street_name = "Unknown"
         
-        # store the path geometry
-        path_geometry = str(first_row[1])
-        
         # close database connection
         conn.close()
+        
+        # store the path geometry
+        path_geometry = start_node_loc + "," + end_node_loc
         
         # return the street name and path geometry
         return (street_name, path_geometry)
