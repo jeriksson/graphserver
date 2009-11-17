@@ -130,7 +130,7 @@ def load_gtfsdb_to_boardalight_graph(g, agency_namespace, gtfsdb, agency_id, ser
         hb = HeadwayBoard( service_id, sc, tz, 0, trip_id.encode('utf-8'), start_time, end_time, headway_secs )
         ha = HeadwayAlight( service_id, sc, tz, 0, trip_id.encode('utf-8'), start_time, end_time, headway_secs )
         
-        stoptimes = list(gtfsdb.execute( "SELECT * FROM stop_times WHERE trip_id=? ORDER BY stop_sequence", (trip_id,)) )
+        stoptimes = list(gtfsdb.execute( "SELECT trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled FROM stop_times WHERE trip_id=? ORDER BY stop_sequence", (trip_id,)) )
         
         #add board edges
         for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled in stoptimes[:-1]:
