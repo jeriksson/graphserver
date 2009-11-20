@@ -64,7 +64,7 @@ class PostgresGIS_OSMDB:
         geom_point = "'POINT(" + str(longitude) + ' ' + str(latitude) + ")'"
         
         # generate query to search for closest OSM point to the provided coordinates
-        dist_query = 'select id, ST_distance_sphere(SetSRID(GeomFromText(' + geom_point + '),4326),location) as dist from nodes where highway=true and endnode_refs > 1 order by dist asc limit 1'
+        dist_query = 'select id, ST_distance_sphere(SetSRID(GeomFromText(' + geom_point + '),4326),location) as dist from nodes where endnode_refs > 1 order by dist asc limit 1'
         
         # execute the query
         cur.execute(dist_query)
