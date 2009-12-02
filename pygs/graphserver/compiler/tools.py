@@ -202,9 +202,9 @@ def load_streets_to_graph(g, osmdb, profiledb=None, slogs={}, reporter=None ):
         g.add_vertex( vertex1_label )
         g.add_vertex( vertex2_label )
         
-        if node1 == "57808625":
-            print (id, parent_id, node1, node2, distance, geom, tags)
-            exit()
+        #if node1 == "57808625":
+        #    print (id, parent_id, node1, node2, distance, geom, tags)
+        #    exit()
         
         # Find rise/fall of edge, if profiledb is given
         rise=0
