@@ -131,17 +131,17 @@ def gdb_load_gtfsdb_to_boardalight(gdb, agency_namespace, gtfsdb, agency_id, cur
         stoptimes = list(gtfsdb.execute( "SELECT * FROM stop_times WHERE trip_id=? ORDER BY stop_sequence", (trip_id,)) )
         
         #add board edges
-        for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled in stoptimes[:-1]:
+        for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled, stop_headsign in stoptimes[:-1]:
             gdb.add_vertex( "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id) )
             gdb.add_edge( "sta-%s"%stop_id, "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id), hb )
             
         #add alight edges
-        for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled in stoptimes[1:]:
+        for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled, stop_headsign in stoptimes[1:]:
             gdb.add_vertex( "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id) )
             gdb.add_edge( "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id), "sta-%s"%stop_id, ha )
         
         #add crossing edges
-        for (trip_id1, arrival_time1, departure_time1, stop_id1, stop_sequence1, stop_dist_traveled1), (trip_id2, arrival_time2, departure_time2, stop_id2, stop_sequence2,stop_dist_traveled2) in cons(stoptimes):
+        for (trip_id1, arrival_time1, departure_time1, stop_id1, stop_sequence1, stop_dist_traveled1, stop_headsign1), (trip_id2, arrival_time2, departure_time2, stop_id2, stop_sequence2, stop_dist_traveled2, stop_headsign2) in cons(stoptimes):
             gdb.add_edge( "hwv-%s-%s-%s"%(agency_namespace,stop_id1, trip_id1), "hwv-%s-%s-%s"%(agency_namespace,stop_id2, trip_id2), Crossing(arrival_time2-departure_time1) )
             
     # load connections
