@@ -2,7 +2,7 @@
 # Modified routeserver to output XML-formatted route results.
 # Author: James P. Biagioni (jbiagi1@uic.edu)
 # Company: University of Illinois at Chicago
-# Last modified: 11/2/09
+# Last modified: 1/11/10
 #
 
 from servable import Servable
@@ -83,7 +83,7 @@ class RouteServer(Servable):
         
     transit_path.mime = "text/xml"
     
-    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", less_walking="False"):
+    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", less_walking="False", udid=""):
         
         # acquire lock
         self.path_xml_lock.acquire()
