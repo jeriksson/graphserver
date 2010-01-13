@@ -118,12 +118,13 @@ pycapi(lgs.gRemoveVertex, c_void_p, [c_void_p, c_char_p, c_int, c_int])
 pycapi(lgs.gGetVertex, c_void_p, [c_void_p, c_char_p])
 pycapi(lgs.gAddEdge, c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p])
 pycapi(lgs.gVertices, c_void_p, [c_void_p, c_void_p])
-pycapi(lgs.gShortestPathTree,c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p, c_int, c_long])
-pycapi(lgs.gShortestPathTreeRetro,c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p, c_int, c_long])
+pycapi(lgs.gShortestPathTree, c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p, c_void_p, c_long])
+pycapi(lgs.gShortestPathTreeRetro, c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p, c_void_p, c_long])
 pycapi(lgs.gSize,c_void_p, [c_long])
 pycapi(lgs.sptPathRetro,c_void_p, [c_void_p, c_char_p, c_void_p])
-pycapi(lgs.gShortestPathTreeRetro,c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p, c_int, c_long])
 pycapi(lgs.gSetVertexEnabled,c_void_p, [c_void_p, c_char_p, c_int])
+pycapi(lgs.gAddVertices, c_void_p, [c_void_p, c_char_p, c_int])
+pycapi(lgs.gSetThicknesses, c_void_p, [c_void_p, c_char_p])
 
 # SERVICE PERIOD API 
 pycapi(lgs.spNew, c_void_p, [c_long, c_long, c_int, c_void_p])
@@ -131,6 +132,11 @@ pycapi(lgs.spRewind, c_void_p, [c_void_p])
 pycapi(lgs.spFastForward, c_void_p, [c_void_p])
 pycapi(lgs.spDatumMidnight, c_long, [c_void_p, c_int])
 pycapi(lgs.spNormalizeTime, c_long, [c_void_p, c_int, c_long])
+pycapi(lgs.spBeginTime, c_long, [c_void_p])
+pycapi(lgs.spEndTime, c_long, [c_void_p])
+pycapi(lgs.spNextPeriod, c_void_p, [c_void_p])
+pycapi(lgs.spPreviousPeriod, c_void_p, [c_void_p])
+pycapi(lgs.spServiceIds, c_void_p, [c_void_p, c_void_p])
 
 # SERVICE CALENDAR API
 pycapi(lgs.scNew, c_void_p, [])
@@ -139,6 +145,8 @@ pycapi(lgs.scPeriodOfOrBefore, c_void_p, [c_void_p, c_int])
 pycapi(lgs.scAddPeriod, c_void_p, [c_void_p, c_void_p])
 pycapi(lgs.scGetServiceIdInt, c_int, [c_void_p, c_char_p])
 pycapi(lgs.scGetServiceIdString, c_char_p, [c_void_p, c_int])
+pycapi(lgs.scDestroy, c_void_p, [c_void_p])
+pycapi(lgs.scHead, c_void_p, [c_void_p])
 
 # TIMEZONE PERIOD API
 pycapi(lgs.tzpNew, c_void_p, [c_long, c_long, c_int])
@@ -147,6 +155,7 @@ pycapi(lgs.tzpUtcOffset, c_int, [c_void_p])
 pycapi(lgs.tzpBeginTime, c_long, [c_void_p])
 pycapi(lgs.tzpEndTime, c_long, [c_void_p])
 pycapi(lgs.tzpNextPeriod, c_void_p, [c_void_p])
+pycapi(lgs.tzpTimeSinceMidnight, c_int, [c_void_p, c_long])
 
 # TIMEZONE API
 pycapi(lgs.tzNew, c_void_p, [])
@@ -154,118 +163,83 @@ pycapi(lgs.tzAddPeriod, c_void_p, [c_void_p])
 pycapi(lgs.tzPeriodOf, c_void_p, [c_void_p, c_long])
 pycapi(lgs.tzUtcOffset, c_int, [c_void_p, c_long])
 pycapi(lgs.tzHead, c_void_p, [c_void_p])
+pycapi(lgs.tzDestroy, c_void_p, [c_void_p])
+pycapi(lgs.tzTimeSinceMidnight, c_int, [c_void_p, c_long])
 
 # STATE API
 pycapi(lgs.stateNew, c_void_p, [c_int, c_long])
 pycapi(lgs.stateDup, c_void_p)
 pycapi(lgs.stateDestroy, c_void_p)
 pycapi(lgs.stateServicePeriod, c_void_p, [c_int])
+pycapi(lgs.stateGetNumAgencies, c_int, [c_void_p])
+pycapi(lgs.stateGetTripId, c_char_p, [c_void_p])
+pycapi(lgs.stateSetDistWalked, c_void_p, [c_void_p, c_double])
+pycapi(lgs.stateSetNumTransfers, c_void_p, [c_void_p, c_int])
+pycapi(lgs.stateSetPrevEdge, c_void_p, [c_void_p, c_void_p])
+pycapi(lgs.stateSetServicePeriod, c_void_p, [c_void_p, c_int, c_void_p])
+pycapi(lgs.stateSetTime, c_void_p, [c_void_p, c_long])
+pycapi(lgs.stateSetWeight, c_void_p, [c_void_p, c_long])
 
-#VERTEX API
+# VERTEX API
 pycapi(lgs.vNew, c_void_p, [c_char_p])
 pycapi(lgs.vDestroy, c_void_p, [c_void_p,c_int,c_int])
 pycapi(lgs.vDegreeIn, c_int, [c_void_p])
 pycapi(lgs.vDegreeOut, c_int, [c_void_p])
 pycapi(lgs.vGetOutgoingEdgeList, c_void_p, [c_void_p])
 pycapi(lgs.vGetIncomingEdgeList, c_void_p, [c_void_p])
+pycapi(lgs.vGetLabel, c_char_p, [c_void_p])
+pycapi(lgs.vPayload, c_void_p, [c_void_p])
 
-#EDGE API
+# EDGE API
 pycapi(lgs.eNew, c_void_p, [c_void_p, c_void_p, c_void_p])
 pycapi(lgs.eGetFrom, c_void_p, [c_void_p])
 pycapi(lgs.eGetTo, c_void_p, [c_void_p])
 pycapi(lgs.eGetPayload, c_void_p, [c_void_p])
 pycapi(lgs.eWalk, c_void_p, [c_void_p, c_void_p, c_int])
 pycapi(lgs.eWalkBack, c_void_p, [c_void_p, c_void_p, c_int])
+pycapi(lgs.eSetEnabled, c_void_p, [c_void_p, c_int])
+pycapi(lgs.eSetThickness, c_void_p, [c_void_p, c_long])
 
-#EDGEPAYLOAD API
+# EDGEPAYLOAD API
 pycapi(lgs.epGetType, c_int, [c_void_p])
 pycapi(lgs.epWalk, c_void_p, [c_void_p, c_void_p, c_int])
 pycapi(lgs.epWalkBack, c_void_p, [c_void_p, c_void_p, c_int])
 
-#LINKNODE API
+# LINKNODE API
 pycapi(lgs.linkNew, c_void_p)
 pycapi(lgs.linkDestroy, c_void_p)
 pycapi(lgs.linkWalk, c_void_p, [c_void_p, c_void_p])
 pycapi(lgs.linkWalkBack, c_void_p, [c_void_p, c_void_p])
+pycapi(lgs.linkGetName, c_char_p, [c_void_p])
 
-#STREET API
+# LIST NODE API
+pycapi(lgs.liGetData, c_void_p, [c_void_p])
+pycapi(lgs.liGetNext, c_void_p, [c_void_p])
+
+# STREET API
 pycapi(lgs.streetNew, c_void_p, [c_char_p, c_double])
 pycapi(lgs.streetNewElev, c_void_p, [c_char_p, c_double, c_float, c_float])
 pycapi(lgs.streetDestroy, c_void_p)
 pycapi(lgs.streetWalk, c_void_p, [c_void_p, c_void_p])
 pycapi(lgs.streetWalkBack, c_void_p, [c_void_p, c_void_p])
+pycapi(lgs.streetGetFall, c_float, [c_void_p])
+pycapi(lgs.streetGetLength, c_double, [c_void_p])
+pycapi(lgs.streetGetName, c_char_p, [c_void_p])
+pycapi(lgs.streetGetRise, c_float, [c_void_p])
+pycapi(lgs.streetSetSlog, c_void_p, [c_void_p, c_float])
+pycapi(lgs.streetSetWay, c_void_p, [c_void_p, c_long])
 
-#EGRESS API
+# EGRESS API
 pycapi(lgs.egressNew, c_void_p, [c_char_p, c_double])
 pycapi(lgs.egressDestroy, c_void_p)
 pycapi(lgs.egressWalk, c_void_p, [c_void_p, c_void_p])
 pycapi(lgs.egressWalkBack, c_void_p, [c_void_p, c_void_p])
-
-#HEADWAY API
-pycapi(lgs.headwayWalk, c_void_p, [c_void_p, c_void_p, c_int])
-pycapi(lgs.headwayWalkBack, c_void_p, [c_void_p, c_void_p, c_int])
-
-#TRIPBOARD API
-pycapi(lgs.tbNew, c_void_p, [c_int, c_void_p, c_void_p, c_int])
-pycapi(lgs.tbWalk, c_void_p, [c_void_p, c_void_p, c_int])
-pycapi(lgs.headwayWalk, c_void_p, [c_void_p, c_void_p, c_int])
-pycapi(lgs.tbAddBoarding, c_void_p, [c_void_p, c_char_p, c_int])
-pycapi(lgs.tbGetBoardingTripId, c_char_p, [c_void_p, c_int])
-pycapi(lgs.tbGetBoardingDepart, c_int, [c_void_p, c_int])
-
-#ALIGHT API
-pycapi(lgs.alGetAlightingTripId, c_char_p, [c_void_p, c_int])
-pycapi(lgs.alGetAlightingArrival, c_int, [c_void_p, c_int])
-
-#ELAPSE TIME API
-pycapi(lgs.elapseTimeNew, c_void_p, [c_long])
-pycapi(lgs.elapseTimeDestroy, c_void_p)
-pycapi(lgs.elapseTimeWalk, c_void_p, [c_void_p, c_void_p])
-pycapi(lgs.elapseTimeWalkBack, c_void_p, [c_void_p, c_void_p])
-pycapi(lgs.elapseTimeGetSeconds, c_long, [c_void_p])
-
-#ADDITIONAL LGS API DEFINITIONS
-pycapi(lgs.alAddAlighting, c_void_p, [c_void_p, c_char_p, c_int])
-pycapi(lgs.alDestroy, c_void_p, [c_void_p])
-pycapi(lgs.alGetAgency, c_int, [c_void_p])
-pycapi(lgs.alGetCalendar, c_void_p, [c_void_p])
-pycapi(lgs.alGetLastAlightingIndex, c_int, [c_void_p, c_int])
-pycapi(lgs.alGetNumAlightings, c_int, [c_void_p])
-pycapi(lgs.alGetServiceId, c_int, [c_void_p])
-pycapi(lgs.alGetTimezone, c_void_p, [c_void_p])
-pycapi(lgs.alNew, c_void_p, [c_int, c_void_p, c_void_p, c_int])
-pycapi(lgs.alSearchAlightingsList, c_int, [c_void_p, c_int])
-pycapi(lgs.cpDestroy, c_void_p, [c_void_p])
-pycapi(lgs.cpNew, c_void_p, [c_void_p, c_void_p])
-pycapi(lgs.crDestroy, c_void_p, [c_void_p])
-pycapi(lgs.crGetCrossingTime, c_int, [c_void_p])
-pycapi(lgs.crNew, c_void_p, [c_int])
-pycapi(lgs.eSetEnabled, c_void_p, [c_void_p, c_int])
-pycapi(lgs.eSetThickness, c_void_p, [c_void_p, c_long])
 pycapi(lgs.egressGetLength, c_double, [c_void_p])
 pycapi(lgs.egressGetName, c_char_p, [c_void_p])
-pycapi(lgs.gAddVertices, c_void_p, [c_void_p, c_char_p, c_int])
-pycapi(lgs.gSetThicknesses, c_void_p, [c_void_p, c_char_p])
-pycapi(lgs.haDestroy, c_void_p, [c_void_p])
-pycapi(lgs.haGetAgency, c_int, [c_void_p])
-pycapi(lgs.haGetCalendar, c_void_p, [c_void_p])
-pycapi(lgs.haGetEndTime, c_int, [c_void_p])
-pycapi(lgs.haGetHeadwaySecs, c_int, [c_void_p])
-pycapi(lgs.haGetServiceId, c_int, [c_void_p])
-pycapi(lgs.haGetStartTime, c_int, [c_void_p])
-pycapi(lgs.haGetTimezone, c_void_p, [c_void_p])
-pycapi(lgs.haGetTripId, c_char_p, [c_void_p])
-pycapi(lgs.haNew, c_void_p, [c_int, c_void_p, c_void_p, c_int, c_char_p, c_int, c_int, c_int])
-pycapi(lgs.hbDestroy, c_void_p, [c_void_p])
-pycapi(lgs.hbGetAgency, c_int, [c_void_p])
-pycapi(lgs.hbGetCalendar, c_void_p, [c_void_p])
-pycapi(lgs.hbGetEndTime, c_int, [c_void_p])
-pycapi(lgs.hbGetHeadwaySecs, c_int, [c_void_p])
-pycapi(lgs.hbGetServiceId, c_int, [c_void_p])
-pycapi(lgs.hbGetStartTime, c_int, [c_void_p])
-pycapi(lgs.hbGetTimezone, c_void_p, [c_void_p])
-pycapi(lgs.hbGetTripId, c_char_p, [c_void_p])
-pycapi(lgs.hbNew, c_void_p, [c_int, c_void_p, c_void_p, c_int, c_char_p, c_int, c_int, c_int])
+
+# HEADWAY API
+pycapi(lgs.headwayWalk, c_void_p, [c_void_p, c_void_p, c_int])
+pycapi(lgs.headwayWalkBack, c_void_p, [c_void_p, c_void_p, c_int])
 pycapi(lgs.headwayAgency, c_int, [c_void_p])
 pycapi(lgs.headwayBeginTime, c_int, [c_void_p])
 pycapi(lgs.headwayCalendar, c_void_p, [c_void_p])
@@ -276,30 +250,38 @@ pycapi(lgs.headwayTimezone, c_void_p, [c_void_p])
 pycapi(lgs.headwayTransit, c_int, [c_void_p])
 pycapi(lgs.headwayTripId, c_char_p, [c_void_p])
 pycapi(lgs.headwayWaitPeriod, c_int, [c_void_p])
-pycapi(lgs.liGetData, c_void_p, [c_void_p])
-pycapi(lgs.liGetNext, c_void_p, [c_void_p])
-pycapi(lgs.linkGetName, c_char_p, [c_void_p])
-pycapi(lgs.scDestroy, c_void_p, [c_void_p])
-pycapi(lgs.scHead, c_void_p, [c_void_p])
-pycapi(lgs.spBeginTime, c_long, [c_void_p])
-pycapi(lgs.spEndTime, c_long, [c_void_p])
-pycapi(lgs.spNextPeriod, c_void_p, [c_void_p])
-pycapi(lgs.spPreviousPeriod, c_void_p, [c_void_p])
-pycapi(lgs.spServiceIds, c_void_p, [c_void_p, c_void_p])
-pycapi(lgs.stateGetNumAgencies, c_int, [c_void_p])
-pycapi(lgs.stateGetTripId, c_char_p, [c_void_p])
-pycapi(lgs.stateSetDistWalked, c_void_p, [c_void_p, c_double])
-pycapi(lgs.stateSetNumTransfers, c_void_p, [c_void_p, c_int])
-pycapi(lgs.stateSetPrevEdge, c_void_p, [c_void_p, c_void_p])
-pycapi(lgs.stateSetServicePeriod, c_void_p, [c_void_p, c_int, c_void_p])
-pycapi(lgs.stateSetTime, c_void_p, [c_void_p, c_long])
-pycapi(lgs.stateSetWeight, c_void_p, [c_void_p, c_long])
-pycapi(lgs.streetGetFall, c_float, [c_void_p])
-pycapi(lgs.streetGetLength, c_double, [c_void_p])
-pycapi(lgs.streetGetName, c_char_p, [c_void_p])
-pycapi(lgs.streetGetRise, c_float, [c_void_p])
-pycapi(lgs.streetSetSlog, c_void_p, [c_void_p, c_float])
-pycapi(lgs.streetSetWay, c_void_p, [c_void_p, c_long])
+
+# HEADWAY ALIGHT API
+pycapi(lgs.haDestroy, c_void_p, [c_void_p])
+pycapi(lgs.haGetAgency, c_int, [c_void_p])
+pycapi(lgs.haGetCalendar, c_void_p, [c_void_p])
+pycapi(lgs.haGetEndTime, c_int, [c_void_p])
+pycapi(lgs.haGetHeadwaySecs, c_int, [c_void_p])
+pycapi(lgs.haGetServiceId, c_int, [c_void_p])
+pycapi(lgs.haGetStartTime, c_int, [c_void_p])
+pycapi(lgs.haGetTimezone, c_void_p, [c_void_p])
+pycapi(lgs.haGetTripId, c_char_p, [c_void_p])
+pycapi(lgs.haNew, c_void_p, [c_int, c_void_p, c_void_p, c_int, c_char_p, c_int, c_int, c_int])
+
+# HEADWAY BOARD API
+pycapi(lgs.hbDestroy, c_void_p, [c_void_p])
+pycapi(lgs.hbGetAgency, c_int, [c_void_p])
+pycapi(lgs.hbGetCalendar, c_void_p, [c_void_p])
+pycapi(lgs.hbGetEndTime, c_int, [c_void_p])
+pycapi(lgs.hbGetHeadwaySecs, c_int, [c_void_p])
+pycapi(lgs.hbGetServiceId, c_int, [c_void_p])
+pycapi(lgs.hbGetStartTime, c_int, [c_void_p])
+pycapi(lgs.hbGetTimezone, c_void_p, [c_void_p])
+pycapi(lgs.hbGetTripId, c_char_p, [c_void_p])
+pycapi(lgs.hbNew, c_void_p, [c_int, c_void_p, c_void_p, c_int, c_char_p, c_int, c_int, c_int])
+
+# TRIPBOARD API
+pycapi(lgs.tbNew, c_void_p, [c_int, c_void_p, c_void_p, c_int])
+pycapi(lgs.tbWalk, c_void_p, [c_void_p, c_void_p, c_int])
+pycapi(lgs.headwayWalk, c_void_p, [c_void_p, c_void_p, c_int])
+pycapi(lgs.tbAddBoarding, c_void_p, [c_void_p, c_char_p, c_int])
+pycapi(lgs.tbGetBoardingTripId, c_char_p, [c_void_p, c_int])
+pycapi(lgs.tbGetBoardingDepart, c_int, [c_void_p, c_int])
 pycapi(lgs.tbDestroy, c_void_p, [c_void_p])
 pycapi(lgs.tbGetAgency, c_int, [c_void_p])
 pycapi(lgs.tbGetCalendar, c_void_p, [c_void_p])
@@ -309,17 +291,46 @@ pycapi(lgs.tbGetOverage, c_int, [c_void_p])
 pycapi(lgs.tbGetServiceId, c_int, [c_void_p])
 pycapi(lgs.tbGetTimezone, c_void_p, [c_void_p])
 pycapi(lgs.tbSearchBoardingsList, c_int, [c_void_p, c_int])
-pycapi(lgs.tzDestroy, c_void_p, [c_void_p])
-pycapi(lgs.tzTimeSinceMidnight, c_int, [c_void_p, c_long])
-pycapi(lgs.tzpTimeSinceMidnight, c_int, [c_void_p, c_long])
-pycapi(lgs.vGetLabel, c_char_p, [c_void_p])
-pycapi(lgs.vPayload, c_void_p, [c_void_p])
+
+# ALIGHT API
+pycapi(lgs.alGetAlightingTripId, c_char_p, [c_void_p, c_int])
+pycapi(lgs.alGetAlightingArrival, c_int, [c_void_p, c_int])
+pycapi(lgs.alAddAlighting, c_void_p, [c_void_p, c_char_p, c_int])
+pycapi(lgs.alDestroy, c_void_p, [c_void_p])
+pycapi(lgs.alGetAgency, c_int, [c_void_p])
+pycapi(lgs.alGetCalendar, c_void_p, [c_void_p])
+pycapi(lgs.alGetLastAlightingIndex, c_int, [c_void_p, c_int])
+pycapi(lgs.alGetNumAlightings, c_int, [c_void_p])
+pycapi(lgs.alGetServiceId, c_int, [c_void_p])
+pycapi(lgs.alGetTimezone, c_void_p, [c_void_p])
+pycapi(lgs.alNew, c_void_p, [c_int, c_void_p, c_void_p, c_int])
+pycapi(lgs.alSearchAlightingsList, c_int, [c_void_p, c_int])
+
+# ELAPSE TIME API
+pycapi(lgs.elapseTimeNew, c_void_p, [c_long])
+pycapi(lgs.elapseTimeDestroy, c_void_p)
+pycapi(lgs.elapseTimeWalk, c_void_p, [c_void_p, c_void_p])
+pycapi(lgs.elapseTimeWalkBack, c_void_p, [c_void_p, c_void_p])
+pycapi(lgs.elapseTimeGetSeconds, c_long, [c_void_p])
+
+# CUSTOM PAYLOAD API
+pycapi(lgs.cpDestroy, c_void_p, [c_void_p])
+pycapi(lgs.cpNew, c_void_p, [c_void_p, c_void_p])
+
+# CROSSING API
+pycapi(lgs.crDestroy, c_void_p, [c_void_p])
+pycapi(lgs.crGetCrossingTime, c_int, [c_void_p])
+pycapi(lgs.crNew, c_void_p, [c_int])
+
+# WAIT API
 pycapi(lgs.waitDestroy, c_void_p, [c_void_p])
 pycapi(lgs.waitGetEnd, c_long, [c_void_p])
 pycapi(lgs.waitGetTimezone, c_void_p, [c_void_p])
 pycapi(lgs.waitNew, c_void_p, [c_long, c_void_p])
 pycapi(lgs.waitWalk, c_void_p, [c_void_p, c_void_p, c_void_p])
 pycapi(lgs.waitWalkBack, c_void_p, [c_void_p, c_void_p, c_void_p])
+
+# WALK OPTIONS API
 pycapi(lgs.woDestroy, c_void_p, [c_void_p])
 pycapi(lgs.woNew, c_void_p)
 pycapi(lgs.woSetDownhillFastness, c_void_p, [c_void_p, c_float])
@@ -332,10 +343,10 @@ pycapi(lgs.woSetWalkingOverage, c_void_p, [c_void_p, c_float])
 pycapi(lgs.woSetWalkingReluctance, c_void_p, [c_void_p, c_float])
 pycapi(lgs.woSetWalkingSpeed, c_void_p, [c_void_p, c_float])
 
-#LIBC API DEFINITIONS
+# LIBC API
 pycapi(libc.free, c_void_p, [c_void_p])
 
-#CUSTOM TYPE API
+# CUSTOM TYPE API
 class PayloadMethodTypes:
     """ Enumerates the ctypes of the function pointers."""
     destroy = CFUNCTYPE(c_void_p, py_object)
