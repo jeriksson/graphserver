@@ -67,7 +67,11 @@ class GraphDatabase:
         
     def add_edge(self, from_v_label, to_v_label, payload, outside_c=None):
         c = outside_c or self.conn.cursor()
-            
+        
+        # temporary fix for schedule bug
+        str(payload.__getstate__())
+        str(payload.__getstate__())
+        
         c.execute( "INSERT INTO edges VALUES (?, ?, ?, ?)", (from_v_label, to_v_label, cPickle.dumps( payload.__class__ ), cPickle.dumps( payload.__getstate__() ) ) )
         
         if hasattr(payload, "__resources__"):
