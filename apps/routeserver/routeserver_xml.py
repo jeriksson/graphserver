@@ -54,6 +54,7 @@ class RouteServer(Servable):
         graphdb = GraphDatabase( graphdb_filename )
         self.graph = graphdb.incarnate()
         self.graph.num_agencies = 2
+        self.graph.numagencies = 2
         self.event_dispatch = event_dispatch
         self.pgosmdb = pgosmdb_handle
         self.pggtfsdb = pggtfsdb_handle
