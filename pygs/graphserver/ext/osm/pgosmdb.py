@@ -63,14 +63,39 @@ class PostgresGIS_OSMDB:
         # place coordinates in POINT GIS object
         geom_point = "'POINT(" + str(longitude) + ' ' + str(latitude) + ")'"
         
+        #print "geom_point: " + str(geom_point)
+        
+        offset = 0.05
+        
+        # created BOX3D object for search space
+        box3d_coords = "'BOX3D(" + str(longitude - offset) + ' ' + str(latitude - offset) + ',' + str(longitude + offset) + ' ' + str(latitude + offset) + ")'"
+        
+        #print "box3d_coords: " + str(box3d_coords)
+        
         # generate query to search for closest OSM point to the provided coordinates
         dist_query = 'select id, ST_distance_sphere(SetSRID(GeomFromText(' + geom_point + '),4326),location) as dist from nodes where endnode_refs > 1 order by dist asc limit 1'
+        dist_box3d_query = 'select id, ST_distance_sphere(SetSRID(GeomFromText(' + geom_point + '),4326),location) as dist from nodes where endnode_refs > 1 and location && SetSRID(' + box3d_coords + '::box3d,4326) order by dist asc limit 1'
         
-        # execute the query
-        cur.execute(dist_query)
+        #print "dist_query: " + str(dist_query)
+        #print "dist_box3d_query: " + str(dist_box3d_query)
+        
+        # execute the box3d-enhanced query
+        cur.execute(dist_box3d_query)
         
         # fetch the first row from the results
         first_row = cur.fetchone()
+        
+        # if the first row contains no results
+        if (first_row is None):
+            
+            # print
+            print "first_row is None"
+            
+            # execute the non-enhanced query
+            cur.execute(dist_query)
+            
+            # fetch the first row from the results
+            first_row = cur.fetchone()
         
         # send commit to the database
         conn.commit()
