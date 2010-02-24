@@ -280,16 +280,34 @@ tzAddPeriod( Timezone* this, TimezonePeriod* period ) {
     }
 }
 
+TimezonePeriod* cached_period = NULL;
+long cached_begin_time = 0;
+long cached_end_time = 0;
+
 TimezonePeriod*
 tzPeriodOf( Timezone* this, long time) {
-  TimezonePeriod* period = this->head;
-
-  while( period && period->end_time < time ) {
-    period = period->next_period;
-  }
   
-  if( period && time < period->begin_time ) {
+  TimezonePeriod* period = NULL;
+  
+  if (cached_period != NULL && time >= cached_begin_time && time <= cached_end_time) {
+  	period = cached_period;
+  	//printf("using cached period\n");
+  }
+  else {
+    //printf("searching for period\n");
+    period = this->head;
+
+    while( period && period->end_time < time ) {
+      period = period->next_period;
+    }
+    
+    if( period && time < period->begin_time ) {
       return NULL;
+    }
+    
+    cached_period = period;
+    cached_begin_time = period->begin_time;
+    cached_end_time = period->end_time;
   }
   
   return period;
