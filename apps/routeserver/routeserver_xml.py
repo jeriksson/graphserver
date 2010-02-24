@@ -482,7 +482,7 @@ if __name__ == '__main__':
             ret_string += '</' + route_info.street_mode + '>'
             route_info.first_edge = False
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + route_desc[0][2] + '" route_id="' + route_desc[0][0] + '" route_long_name="' + route_desc[0][1] + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + stop_desc + '" board_stop_headsign="' + stop_headsign + '" board_time="' + boardtime + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][2]) + '" route_id="' + str(route_desc[0][0]) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
@@ -500,7 +500,7 @@ if __name__ == '__main__':
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
         
-        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + stop_desc + '" alight_time="' + alighttime + '" alight_lat="' + str(lat) + '" alight_lon="' + str(lon) + '" />'
+        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + str(stop_desc) + '" alight_time="' + str(alighttime) + '" alight_lat="' + str(lat) + '" alight_lon="' + str(lon) + '" />'
         
         # if this is the last edge in the route
         if (route_info.last_edge):
@@ -546,7 +546,7 @@ if __name__ == '__main__':
             ret_string += '</' + route_info.street_mode + '>'
             route_info.first_edge = False
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + route_desc[0][2] + '" route_id="' + route_desc[0][0] + '" route_long_name="' + route_desc[0][1] + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + stop_desc + '" board_stop_headsign="' + stop_headsign + '" board_time="' + boardtime + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][2]) + '" route_id="' + str(route_desc[0][0]) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
@@ -564,7 +564,7 @@ if __name__ == '__main__':
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
         
-        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + stop_desc + '" alight_time="' + alighttime + '" alight_lat="' + str(lat) + '" alight_lon="' + str(lon) + '" />'
+        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + str(stop_desc) + '" alight_time="' + str(alighttime) + '" alight_lat="' + str(lat) + '" alight_lon="' + str(lon) + '" />'
         
         # if this is the last edge in the route
         if (route_info.last_edge):
