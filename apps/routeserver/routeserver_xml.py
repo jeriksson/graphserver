@@ -2,7 +2,7 @@
 # Modified routeserver to output XML-formatted route results.
 # Author: James P. Biagioni (jbiagi1@uic.edu)
 # Company: University of Illinois at Chicago
-# Last modified: 1/11/10
+# Last modified: 2/24/10
 #
 
 from servable import Servable
@@ -467,6 +467,7 @@ if __name__ == '__main__':
         stop_desc = list( pggtfsdb.execute( "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
         lat, lon = list( pggtfsdb.execute( "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
         stop_headsign = list( pggtfsdb.execute( "SELECT stop_headsign FROM stop_times WHERE trip_id='" + trip_id + "' AND stop_id='" + stop_id + "'") )[0][0]
+        agency_id = list( pggtfsdb.execute( "SELECT agency_id FROM routes WHERE route_id='" + str(route_desc[0][0]) + "'") )[0][0]
         
         boardtime = str(event_time) #str(TimeHelpers.unix_to_localtime( event_time, "America/Chicago" ))
         #stop_desc = stop_desc.replace("&","&amp;")
@@ -481,7 +482,7 @@ if __name__ == '__main__':
             ret_string += '</' + route_info.street_mode + '>'
             route_info.first_edge = False
         
-        ret_string += '<transit route_type="' + route_desc[0][2] + '" route_id="' + route_desc[0][0] + '" route_long_name="' + route_desc[0][1] + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + stop_desc + '" board_stop_headsign="' + stop_headsign + '" board_time="' + boardtime + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + route_desc[0][2] + '" route_id="' + route_desc[0][0] + '" route_long_name="' + route_desc[0][1] + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + stop_desc + '" board_stop_headsign="' + stop_headsign + '" board_time="' + boardtime + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
@@ -530,6 +531,7 @@ if __name__ == '__main__':
         stop_desc = list( pggtfsdb.execute( "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
         lat, lon = list( pggtfsdb.execute( "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
         stop_headsign = list( pggtfsdb.execute( "SELECT stop_headsign FROM stop_times WHERE trip_id='" + trip_id + "' AND stop_id='" + stop_id + "'") )[0][0]
+        agency_id = list( pggtfsdb.execute( "SELECT agency_id FROM routes WHERE route_id='" + str(route_desc[0][0]) + "'") )[0][0]
         
         boardtime = str(event_time) #str(TimeHelpers.unix_to_localtime( event_time, "America/Chicago" ))
         #stop_desc = stop_desc.replace("&","&amp;")
@@ -544,7 +546,7 @@ if __name__ == '__main__':
             ret_string += '</' + route_info.street_mode + '>'
             route_info.first_edge = False
         
-        ret_string += '<transit route_type="' + route_desc[0][2] + '" route_id="' + route_desc[0][0] + '" route_long_name="' + route_desc[0][1] + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + stop_desc + '" board_stop_headsign="' + stop_headsign + '" board_time="' + boardtime + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + route_desc[0][2] + '" route_id="' + route_desc[0][0] + '" route_long_name="' + route_desc[0][1] + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + stop_desc + '" board_stop_headsign="' + stop_headsign + '" board_time="' + boardtime + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
