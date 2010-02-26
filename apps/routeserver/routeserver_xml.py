@@ -2,7 +2,7 @@
 # Modified routeserver to output XML-formatted route results.
 # Author: James P. Biagioni (jbiagi1@uic.edu)
 # Company: University of Illinois at Chicago
-# Last modified: 2/24/10
+# Last modified: 2/26/10
 #
 
 from servable import Servable
@@ -131,8 +131,8 @@ class RouteServer(Servable):
                 dest = dest_sta
                 dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(dest)
             
-            print "Origin: " + str(origin)
-            print "Destination: " + str(dest) + "\n"
+            #print "Origin: " + str(origin)
+            #print "Destination: " + str(dest) + "\n"
             
             #print "Origin coords: " + str(orig_node_lat) + ", " + str(orig_node_lon)
             #print "Destination coords: " + str(dest_node_lat) + ", " + str(dest_node_lon)
