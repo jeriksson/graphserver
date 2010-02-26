@@ -65,6 +65,7 @@ class PostgresGIS_OSMDB:
         
         #print "geom_point: " + str(geom_point)
         
+        # longitude/latitude offset
         offset = 0.05
         
         # created BOX3D object for search space
@@ -89,7 +90,7 @@ class PostgresGIS_OSMDB:
         if (first_row is None):
             
             # print
-            print "first_row is None for coords (" + str(longitude) + "," + str(latitude) + ")"
+            print "first_row is None for OSM coords (" + str(longitude) + "," + str(latitude) + ")"
             
             # execute the non-enhanced query
             cur.execute(dist_query)
@@ -104,7 +105,7 @@ class PostgresGIS_OSMDB:
         conn.close()
         
         # return osm vertex id
-        return 'osm-' + first_row[0]
+        return ('osm-' + first_row[0], first_row[1])
     
     #
     # method for returning the coordinates (lat, lon) for an osm vertex
