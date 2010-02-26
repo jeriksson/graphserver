@@ -102,12 +102,37 @@ class RouteServer(Servable):
                 timezone = "America/Chicago"
             
             # get origin and destination nodes from osm map
-            origin = self.pgosmdb.get_osm_vertex_from_coords(origlon, origlat)
-            dest = self.pgosmdb.get_osm_vertex_from_coords(destlon, destlat)
+            orig_osm, orig_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(origlon, origlat)
+            dest_osm, dest_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(destlon, destlat)
             
-            # get coordinates for origin and destination nodes
-            orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(origin)
-            dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
+            #print "\nOrigin OSM: " + str(orig_osm) + " (" + str(orig_osm_dist) + ")"
+            #print "Destination OSM: " + str(dest_osm) + " (" + str(dest_osm_dist) + ")\n"
+            
+            # get origin and destination nodes from gtfs database
+            orig_sta, orig_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(origlon, origlat)
+            dest_sta, dest_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(destlon, destlat)
+            
+            #print "Origin STA: " + str(orig_sta) + " (" + str(orig_sta_dist) + ")"
+            #print "Destination STA: " + str(dest_sta) + " (" + str(dest_sta_dist) + ")\n"
+            
+            # get coordinates for origin node
+            if (orig_osm_dist < orig_sta_dist):
+                origin = orig_osm
+                orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(origin)
+            else:
+                origin = orig_sta
+                orig_node_lat, orig_node_lon = self.pggtfsdb.get_coords_for_station_vertex(origin)
+                
+            # get coordinates for destination node
+            if (dest_osm_dist < dest_sta_dist):
+                dest = dest_osm
+                dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
+            else:
+                dest = dest_sta
+                dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_station_vertex(dest)
+            
+            print "Origin: " + str(origin)
+            print "Destination: " + str(dest) + "\n"
             
             #print "Origin coords: " + str(orig_node_lat) + ", " + str(orig_node_lon)
             #print "Destination coords: " + str(dest_node_lat) + ", " + str(dest_node_lon)
