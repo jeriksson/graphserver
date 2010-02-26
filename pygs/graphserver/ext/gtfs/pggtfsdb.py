@@ -50,6 +50,99 @@ class PostgresGIS_GTFSDB:
         return query_result
     
     #
+    # method for returning the closest station vertex to a coordinate pair
+    #
+    def get_station_vertex_from_coords(self, longitude, latitude):
+        
+        # connect to database
+        conn = psycopg2.connect(self.db_connect_string)
+        
+        # grab database cursor
+        cur = conn.cursor()
+        
+        # place coordinates in POINT GIS object
+        geom_point = "'POINT(" + str(longitude) + ' ' + str(latitude) + ")'"
+        
+        #print "geom_point: " + str(geom_point)
+        
+        # longitude/latitude offset
+        offset = 0.05
+        
+        # created BOX3D object for search space
+        box3d_coords = "'BOX3D(" + str(longitude - offset) + ' ' + str(latitude - offset) + ',' + str(longitude + offset) + ' ' + str(latitude + offset) + ")'"
+        
+        #print "box3d_coords: " + str(box3d_coords)
+        
+        # generate query to search for closest OSM point to the provided coordinates
+        dist_query = 'select stop_id, ST_distance_sphere(SetSRID(GeomFromText(' + geom_point + '),4326),location) as dist from stops order by dist asc limit 1'
+        dist_box3d_query = 'select stop_id, ST_distance_sphere(SetSRID(GeomFromText(' + geom_point + '),4326),location) as dist from stops where location && SetSRID(' + box3d_coords + '::box3d,4326) order by dist asc limit 1'
+        
+        #print "dist_query: " + str(dist_query)
+        #print "dist_box3d_query: " + str(dist_box3d_query)
+        
+        # execute the box3d-enhanced query
+        cur.execute(dist_box3d_query)
+        
+        # fetch the first row from the results
+        first_row = cur.fetchone()
+        
+        # if the first row contains no results
+        if (first_row is None):
+            
+            # print
+            print "first_row is None for STATION coords (" + str(longitude) + "," + str(latitude) + ")"
+            
+            # execute the non-enhanced query
+            cur.execute(dist_query)
+            
+            # fetch the first row from the results
+            first_row = cur.fetchone()
+        
+        # send commit to the database
+        conn.commit()
+        
+        # close database connection
+        conn.close()
+        
+        # return osm vertex id
+        return ('sta-' + first_row[0], first_row[1])
+    
+    #
+    # method for returning the coordinates (lat, lon) for a station vertex
+    #
+    def get_coords_for_station_vertex(self, vertex_id):
+        
+        # connect to database
+        conn = psycopg2.connect(self.db_connect_string)
+        
+        # grab database cursor
+        cur = conn.cursor()
+        
+        # strip 'osm-' prefix from vertex_id
+        vertex_id = vertex_id.replace('sta-','')
+        
+        # generate query to grab coordinates for vertex
+        vertex_query = "select ST_AsText(location) from stops where stop_id='" + vertex_id + "'"
+        
+        # execute the query
+        cur.execute(vertex_query)
+        
+        # fetch the first row from the results
+        first_row = cur.fetchone()
+        
+        # send commit to the database
+        conn.commit()
+        
+        # grab raw coordinates
+        vertex_coords = first_row[0].replace('POINT(','').replace(')','')
+        
+        # close database connection
+        conn.close()
+        
+        # return coordinates (lat, lon)
+        return (float(vertex_coords[vertex_coords.index(' ')+1:]), float(vertex_coords[0:vertex_coords.index(' ')]))
+    
+    #
     # method for returning all the points along a transit path
     #
     def get_all_transit_path_points(self, trip_id):
