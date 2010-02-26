@@ -129,7 +129,7 @@ class RouteServer(Servable):
                 dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
             else:
                 dest = dest_sta
-                dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_station_vertex(dest)
+                dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(dest)
             
             print "Origin: " + str(origin)
             print "Destination: " + str(dest) + "\n"
