@@ -90,7 +90,7 @@ class PostgresGIS_OSMDB:
         if (first_row is None):
             
             # print
-            print "first_row is None for OSM coords (" + str(longitude) + "," + str(latitude) + ")"
+            #print "first_row is None for OSM coords (" + str(longitude) + "," + str(latitude) + ")"
             
             # execute the non-enhanced query
             cur.execute(dist_query)

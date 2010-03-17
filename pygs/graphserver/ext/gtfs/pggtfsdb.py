@@ -90,7 +90,7 @@ class PostgresGIS_GTFSDB:
         if (first_row is None):
             
             # print
-            print "first_row is None for STATION coords (" + str(longitude) + "," + str(latitude) + ")"
+            #print "first_row is None for STATION coords (" + str(longitude) + "," + str(latitude) + ")"
             
             # execute the non-enhanced query
             cur.execute(dist_query)
