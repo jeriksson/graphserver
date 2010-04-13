@@ -20,6 +20,12 @@ from graphserver.ext.osm.vincenty import vincenty
 import json
 import thread
 
+class ChicagoMap:
+    bounding_lon_left = -89.10214993167982
+    bounding_lon_right = -87.04104954832019
+    bounding_lat_bottom = 41.05609950244687
+    bounding_lat_top = 42.94806709755313
+
 class WalkPath:
     def __init__(self):
         self.name = ""
@@ -63,31 +69,38 @@ class RouteServer(Servable):
     
     def transit_path(self, trip_id, board_stop_id, alight_stop_id, origlon=0, origlat=0, destlon=0, destlat=0):
         
-        # acquire lock
-        self.transit_path_lock.acquire()
+        sys.stderr.write("[transit_path_entry_point," + str(time.time()) + "]\n")
         
-        try:
-            ret_string = '<transit trip_id="' + str(trip_id) + '" board_stop_id="' + str(board_stop_id) + '" alight_stop_id="' + str(alight_stop_id) + '">'
-            ret_string += '<points>'
-            
-            for point in self.pggtfsdb.get_transit_path_points(trip_id, board_stop_id, alight_stop_id):
-                ret_string += '<point lat="' + point[0:point.index(',')] + '" lon="' + point[point.index(',')+1:] + '" />'
-            
-            ret_string += '</points>'
-            ret_string += '</transit>'
-            
-            return ret_string
+        ret_string = '<transit trip_id="' + str(trip_id) + '" board_stop_id="' + str(board_stop_id) + '" alight_stop_id="' + str(alight_stop_id) + '">'
+        ret_string += '<points>'
         
-        finally:
-            # release lock
-            self.transit_path_lock.release()
+        sys.stderr.write("[get_transit_path_points," + str(time.time()) + "]\n")
+        for point in self.pggtfsdb.get_transit_path_points(trip_id, board_stop_id, alight_stop_id):
+            ret_string += '<point lat="' + point[0:point.index(',')] + '" lon="' + point[point.index(',')+1:] + '" />'
+        
+        ret_string += '</points>'
+        ret_string += '</transit>'
+        
+        sys.stderr.write("[transit_path_exit_point," + str(time.time()) + "]\n")
+        
+        return ret_string
         
     transit_path.mime = "text/xml"
     
     def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", less_walking="False", udid="", version="2.0"):
         
         # acquire lock
-        self.path_xml_lock.acquire()
+        #self.path_xml_lock.acquire()
+        
+        sys.stderr.write("[xml_path_entry_point," + str(time.time()) + "] \"origlon=" + str(origlon) + "&origlat=" + str(origlat) + "&destlon=" + str(destlon) + "&destlat=" + str(destlat) + "&dep_time=" + str(dep_time) + "&arr_time=" + str(arr_time) + "&timezone=" + str(timezone) + "&transfer_penalty=" + str(transfer_penalty) + "&walking_speed=" + str(walking_speed) + "&walking_reluctance=" + str(walking_reluctance) + "&max_walk=" + str(max_walk) + "&walking_overage=" + str(walking_overage) + "&seqno=" + str(seqno) + "&street_mode=\"" + str(street_mode) + "\"&less_walking=\"" + str(less_walking) + "\"&udid=\"" + str(udid) + "\"&version=" + str(version) + "\"\n")
+        
+        if (origlon <= ChicagoMap.bounding_lon_left or origlon >= ChicagoMap.bounding_lon_right or 
+            origlat <= ChicagoMap.bounding_lat_bottom or origlat >= ChicagoMap.bounding_lat_top or 
+            destlon <= ChicagoMap.bounding_lon_left or destlon >= ChicagoMap.bounding_lon_right or 
+            destlat <= ChicagoMap.bounding_lat_bottom or destlat >= ChicagoMap.bounding_lat_top):
+            
+            sys.stderr.write("[exit_outside_bounding_box," + str(time.time()) + "]\n")
+            return '<?xml version="1.0"?><routes></routes>'
         
         # initialize spt to 'None' object
         spt = None
@@ -102,6 +115,7 @@ class RouteServer(Servable):
                 timezone = "America/Chicago"
             
             # get origin and destination nodes from osm map
+            sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
             orig_osm, orig_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(origlon, origlat)
             dest_osm, dest_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(destlon, destlat)
             
@@ -109,6 +123,7 @@ class RouteServer(Servable):
             #print "Destination OSM: " + str(dest_osm) + " (" + str(dest_osm_dist) + ")\n"
             
             # get origin and destination nodes from gtfs database
+            sys.stderr.write("[get_station_vertex_from_coords," + str(time.time()) + "]\n")
             orig_sta, orig_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(origlon, origlat)
             dest_sta, dest_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(destlon, destlat)
             
@@ -118,17 +133,21 @@ class RouteServer(Servable):
             # get coordinates for origin node
             if (orig_osm_dist < orig_sta_dist):
                 origin = orig_osm
+                sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
                 orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(origin)
             else:
                 origin = orig_sta
+                sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
                 orig_node_lat, orig_node_lon = self.pggtfsdb.get_coords_for_station_vertex(origin)
                 
             # get coordinates for destination node
             if (dest_osm_dist < dest_sta_dist):
                 dest = dest_osm
+                sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
                 dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
             else:
                 dest = dest_sta
+                sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
                 dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(dest)
             
             #print "Origin: " + str(origin)
@@ -191,6 +210,7 @@ class RouteServer(Servable):
             
             if (arr_time == 0):
                 # generate shortest path tree based on departure time
+                sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
                 spt = self.graph.shortest_path_tree( origin, dest, State(2,dep_time), wo )
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
@@ -212,6 +232,7 @@ class RouteServer(Servable):
                 #    spt.destroy()
                 
                 # re-run query using soonest arrival time
+                sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
                 arr_spt = self.graph.shortest_path_tree_retro( origin, dest, State(2,soonest_arr_time), wo )
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
@@ -246,6 +267,7 @@ class RouteServer(Servable):
                 
             else:
                 # generate shortest path tree based on arrival time
+                sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
                 spt = self.graph.shortest_path_tree_retro( origin, dest, State(2,arr_time), wo )
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
@@ -263,6 +285,7 @@ class RouteServer(Servable):
                 latest_dep_time = arr_vertices[0].payload.time
                 
                 # re-run query using latest departure time
+                sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
                 dep_spt = self.graph.shortest_path_tree( origin, dest, State(2,latest_dep_time), wo )
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
@@ -331,6 +354,7 @@ class RouteServer(Servable):
             route_info.street_mode = street_mode
             
             # iterate through all edges in the route
+            sys.stderr.write("[edges_loop," + str(time.time()) + "]\n")
             for i in range(edges_len):
                 
                 if (i == (edges_len-1)):
@@ -350,6 +374,8 @@ class RouteServer(Servable):
             # close return string
             ret_string += '</routes>'
             
+            sys.stderr.write("[xml_path_exit_point," + str(time.time()) + "]\n")
+            
             # return routes xml
             return str(ret_string)
             
@@ -359,7 +385,7 @@ class RouteServer(Servable):
                 spt.destroy()
             
             # release lock
-            self.path_xml_lock.release()
+            #self.path_xml_lock.release()
         
     path_xml.mime = "text/xml"
 
