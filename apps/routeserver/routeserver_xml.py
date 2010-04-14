@@ -361,6 +361,8 @@ class RouteServer(Servable):
                     route_info.last_edge = True
                 elif (i == (edges_len-2) and edges[i+1].payload.__class__ == graphserver.core.Link):
                     route_info.last_edge = True
+                elif (i == (edges_len-3) and edges[i+1].payload.__class__ == graphserver.core.Link and edges[i+2].payload.__class__ == graphserver.core.Link):
+                    route_info.last_edge = True
             	
                 edgetype = edges[i].payload.__class__
                 if edgetype in self.event_dispatch:
