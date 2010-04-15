@@ -60,7 +60,7 @@ class RouteServer(Servable):
         graphdb = GraphDatabase( graphdb_filename )
         self.graph = graphdb.incarnate()
         self.graph.num_agencies = 2
-        self.graph.numagencies = 2
+        self.graph.numagencies = self.graph.num_agencies
         self.event_dispatch = event_dispatch
         self.pgosmdb = pgosmdb_handle
         self.pggtfsdb = pggtfsdb_handle
@@ -211,7 +211,7 @@ class RouteServer(Servable):
             if (arr_time == 0):
                 # generate shortest path tree based on departure time
                 sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
-                spt = self.graph.shortest_path_tree( origin, dest, State(2,dep_time), wo )
+                spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,dep_time), wo )
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
                 if (spt is None):
@@ -233,7 +233,7 @@ class RouteServer(Servable):
                 
                 # re-run query using soonest arrival time
                 sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
-                arr_spt = self.graph.shortest_path_tree_retro( origin, dest, State(2,soonest_arr_time), wo )
+                arr_spt = self.graph.shortest_path_tree_retro( origin, dest, State(self.graph.num_agencies,soonest_arr_time), wo )
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
                 if (arr_spt is None):
@@ -268,7 +268,7 @@ class RouteServer(Servable):
             else:
                 # generate shortest path tree based on arrival time
                 sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
-                spt = self.graph.shortest_path_tree_retro( origin, dest, State(2,arr_time), wo )
+                spt = self.graph.shortest_path_tree_retro( origin, dest, State(self.graph.num_agencies,arr_time), wo )
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
                 if (spt is None):
@@ -286,7 +286,7 @@ class RouteServer(Servable):
                 
                 # re-run query using latest departure time
                 sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
-                dep_spt = self.graph.shortest_path_tree( origin, dest, State(2,latest_dep_time), wo )
+                dep_spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,latest_dep_time), wo )
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
                 if (dep_spt is None):
@@ -516,7 +516,7 @@ if __name__ == '__main__':
         trip_id = vertex2.payload.trip_id
         stop_id = vertex1.label.split("-")[-1]
         
-        route_desc = list( pggtfsdb.execute( "SELECT routes.route_id, routes.route_long_name, routes.route_type FROM routes, trips WHERE routes.route_id=trips.route_id AND trip_id='" + trip_id + "'") )
+        route_desc = list( pggtfsdb.execute( "SELECT routes.route_id, routes.route_long_name, routes.route_short_name, routes.route_type FROM routes, trips WHERE routes.route_id=trips.route_id AND trip_id='" + trip_id + "'") )
         stop_desc = list( pggtfsdb.execute( "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
         lat, lon = list( pggtfsdb.execute( "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
         stop_headsign = list( pggtfsdb.execute( "SELECT stop_headsign FROM stop_times WHERE trip_id='" + trip_id + "' AND stop_id='" + stop_id + "'") )[0][0]
@@ -535,7 +535,11 @@ if __name__ == '__main__':
             ret_string += '</' + route_info.street_mode + '>'
             route_info.first_edge = False
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][2]) + '" route_id="' + str(route_desc[0][0]) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        route_id = str(route_desc[0][0])
+        if ("PACE_" in route_id):
+            route_id = str(route_desc[0][2])
+        
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][3]) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
