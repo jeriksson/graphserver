@@ -219,54 +219,62 @@ class PostgresGIS_GTFSDB:
         # grab the shape id
         shape_id = cur.fetchone()[0]
         
-        # check the shape id
-        if (shape_id.strip() == ''):
-            return [str(board_stop_loc[0]) + ',' + str(board_stop_loc[1]), str(alight_stop_loc[0]) + ',' + str(alight_stop_loc[1])]
-        
         # send commit to the database
         conn.commit()
         
-        # execute query to get shape point sequence value for the board stop
-        cur.execute("select shapes.shape_pt_sequence, ST_Distance(shapes.location, stops.location) as distance from shapes, stops where shapes.shape_id='" + shape_id + "' and stops.stop_id='" + str(board_stop_id) + "' order by distance asc limit 1")
+        # create list for storing points along the the shape between the stops
+        path_points = []
         
-        # grab the shape point sequence value for the board stop
-        board_shape_pt_sequence = cur.fetchone()[0]
-        
-        # send commit to the database
-        conn.commit()
-        
-        # execute query to get shape point sequence value for the alight stop
-        cur.execute("select shapes.shape_pt_sequence, ST_Distance(shapes.location, stops.location) as distance from shapes, stops where shapes.shape_id='" + shape_id + "' and stops.stop_id='" + str(alight_stop_id) + "' order by distance asc limit 1")
-        
-        # grab the shape point sequence value for the alight stop
-        alight_shape_pt_sequence = cur.fetchone()[0]
-        
-        # send commit to the database
-        conn.commit()
-        
-        # determine which point sequence value is greater
-        if (board_shape_pt_sequence < alight_shape_pt_sequence):
+        if (shape_id is not None):
             
-            # execute query to get the list of points along the shape between the board and alight stops
-            cur.execute("select ST_AsText(location) from shapes where shape_id='" + shape_id + "' and shape_pt_sequence >= " + str(board_shape_pt_sequence) + " and shape_pt_sequence <= " + str(alight_shape_pt_sequence) + " order by shape_pt_sequence asc")
-        else:
+            # check the shape id
+            if (shape_id.strip() == ''):
+                return [str(board_stop_loc[0]) + ',' + str(board_stop_loc[1]), str(alight_stop_loc[0]) + ',' + str(alight_stop_loc[1])]
             
-            # execute query to get the list of points along the shape between the alight and board stops
-            cur.execute("select ST_AsText(location) from shapes where shape_id='" + shape_id + "' and shape_pt_sequence >= " + str(alight_shape_pt_sequence) + " and shape_pt_sequence <= " + str(board_shape_pt_sequence) + " order by shape_pt_sequence desc")
-        
-        # grab list of points along the the shape between the stops
-        path_points = cur.fetchall()
-        
-        # send commit to the database
-        conn.commit()
-        
-        # iterate through points
-        for i in range(len(path_points)):
-            mod_point = path_points[i][0].replace('POINT(','').replace(')','').replace(' ',',')
-            point_lat = mod_point[mod_point.index(',')+1:]
-            point_lon = mod_point[0:mod_point.index(',')]
-            path_points[i] = point_lat + ',' + point_lon
-        
+            # send commit to the database
+            #conn.commit()
+            
+            # execute query to get shape point sequence value for the board stop
+            cur.execute("select shapes.shape_pt_sequence, ST_Distance(shapes.location, stops.location) as distance from shapes, stops where shapes.shape_id='" + shape_id + "' and stops.stop_id='" + str(board_stop_id) + "' order by distance asc limit 1")
+            
+            # grab the shape point sequence value for the board stop
+            board_shape_pt_sequence = cur.fetchone()[0]
+            
+            # send commit to the database
+            conn.commit()
+            
+            # execute query to get shape point sequence value for the alight stop
+            cur.execute("select shapes.shape_pt_sequence, ST_Distance(shapes.location, stops.location) as distance from shapes, stops where shapes.shape_id='" + shape_id + "' and stops.stop_id='" + str(alight_stop_id) + "' order by distance asc limit 1")
+            
+            # grab the shape point sequence value for the alight stop
+            alight_shape_pt_sequence = cur.fetchone()[0]
+            
+            # send commit to the database
+            conn.commit()
+            
+            # determine which point sequence value is greater
+            if (board_shape_pt_sequence < alight_shape_pt_sequence):
+                
+                # execute query to get the list of points along the shape between the board and alight stops
+                cur.execute("select ST_AsText(location) from shapes where shape_id='" + shape_id + "' and shape_pt_sequence >= " + str(board_shape_pt_sequence) + " and shape_pt_sequence <= " + str(alight_shape_pt_sequence) + " order by shape_pt_sequence asc")
+            else:
+                
+                # execute query to get the list of points along the shape between the alight and board stops
+                cur.execute("select ST_AsText(location) from shapes where shape_id='" + shape_id + "' and shape_pt_sequence >= " + str(alight_shape_pt_sequence) + " and shape_pt_sequence <= " + str(board_shape_pt_sequence) + " order by shape_pt_sequence desc")
+            
+            # grab list of points along the the shape between the stops
+            path_points = cur.fetchall()
+            
+            # send commit to the database
+            conn.commit()
+            
+            # iterate through points
+            for i in range(len(path_points)):
+                mod_point = path_points[i][0].replace('POINT(','').replace(')','').replace(' ',',')
+                point_lat = mod_point[mod_point.index(',')+1:]
+                point_lon = mod_point[0:mod_point.index(',')]
+                path_points[i] = point_lat + ',' + point_lon
+            
         # close database connection
         conn.close()
         
