@@ -2,10 +2,12 @@
 # Modified routeserver to output XML-formatted route results.
 # Author: James P. Biagioni (jbiagi1@uic.edu)
 # Company: University of Illinois at Chicago
-# Last modified: 2/26/10
+# Last modified: 4/20/10
 #
 
 from servable import Servable
+from SocketServer import ForkingMixIn
+from wsgiref.simple_server import WSGIServer, make_server
 from graphserver.graphdb import GraphDatabase
 import cgi
 from graphserver.core import State, WalkOptions
@@ -18,7 +20,6 @@ from graphserver.ext.gtfs.pggtfsdb import PostgresGIS_GTFSDB
 from math import fmod, sin, cos, atan2, pi, degrees
 from graphserver.ext.osm.vincenty import vincenty
 import json
-import thread
 
 class ChicagoMap:
     bounding_lon_left = -89.10214993167982
@@ -55,17 +56,24 @@ class RouteInfo:
         self.last_edge = False
         self.street_mode = ""
 
+class MyWSGIServer(ForkingMixIn, WSGIServer):
+    pass
+
 class RouteServer(Servable):
     def __init__(self, graphdb_filename, pgosmdb_handle, pggtfsdb_handle, event_dispatch):
         graphdb = GraphDatabase( graphdb_filename )
         self.graph = graphdb.incarnate()
-        self.graph.num_agencies = 2
+        self.graph.num_agencies = 3
         self.graph.numagencies = self.graph.num_agencies
         self.event_dispatch = event_dispatch
         self.pgosmdb = pgosmdb_handle
         self.pggtfsdb = pggtfsdb_handle
-        self.path_xml_lock = thread.allocate_lock()
-        self.transit_path_lock = thread.allocate_lock()
+    
+    def run_test_server(self, port=8080):
+        print "starting RouteServer on port " + str(port)
+        httpd = make_server('', port, self.wsgi_app(), MyWSGIServer)
+        httpd.serve_forever()
+    run_test_server.serve = False
     
     def transit_path(self, trip_id, board_stop_id, alight_stop_id, origlon=0, origlat=0, destlon=0, destlat=0):
         
@@ -88,9 +96,6 @@ class RouteServer(Servable):
     transit_path.mime = "text/xml"
     
     def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", less_walking="False", udid="", version="2.0"):
-        
-        # acquire lock
-        #self.path_xml_lock.acquire()
         
         sys.stderr.write("[xml_path_entry_point," + str(time.time()) + "] \"origlon=" + str(origlon) + "&origlat=" + str(origlat) + "&destlon=" + str(destlon) + "&destlat=" + str(destlat) + "&dep_time=" + str(dep_time) + "&arr_time=" + str(arr_time) + "&timezone=" + str(timezone) + "&transfer_penalty=" + str(transfer_penalty) + "&walking_speed=" + str(walking_speed) + "&walking_reluctance=" + str(walking_reluctance) + "&max_walk=" + str(max_walk) + "&walking_overage=" + str(walking_overage) + "&seqno=" + str(seqno) + "&street_mode=\"" + str(street_mode) + "\"&less_walking=\"" + str(less_walking) + "\"&udid=\"" + str(udid) + "\"&version=" + str(version) + "\"\n")
         
@@ -385,9 +390,6 @@ class RouteServer(Servable):
             # destroy shortest path tree
             if (spt is not None):
                 spt.destroy()
-            
-            # release lock
-            #self.path_xml_lock.release()
         
     path_xml.mime = "text/xml"
 
