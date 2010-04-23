@@ -22,10 +22,10 @@ from graphserver.ext.osm.vincenty import vincenty
 import json
 
 class ChicagoMap:
-    bounding_lon_left = -89.10214993167982
-    bounding_lon_right = -87.04104954832019
-    bounding_lat_bottom = 41.05609950244687
-    bounding_lat_top = 42.94806709755313
+    bounding_lon_left=-89.106976260401382
+    bounding_lat_bottom=41.028302192122915
+    bounding_lon_right=-86.866313839598618
+    bounding_lat_top=42.948031407877082
 
 class WalkPath:
     def __init__(self):
