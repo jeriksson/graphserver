@@ -5,7 +5,7 @@
 # Last modified: 4/20/10
 #
 
-from servable import Servable
+from routeserver_servable import Servable
 from SocketServer import ForkingMixIn
 from wsgiref.simple_server import WSGIServer, make_server
 from graphserver.graphdb import GraphDatabase
