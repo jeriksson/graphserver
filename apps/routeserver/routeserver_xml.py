@@ -26,6 +26,11 @@ import re
 import traceback
 from urlparse import urlparse
 
+try:
+    from simplejson import loads as json_loads
+except ImportError:
+    from json import loads as json_loads
+
 
 class ChicagoMap:
     bounding_lon_left=-89.106976260401382
