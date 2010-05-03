@@ -59,7 +59,7 @@ class RouteInfo:
 class MyWSGIServer(ForkingMixIn, WSGIServer):
     pass
 
-class RouteServer(Servable):
+class RouteServer:
     def __init__(self, graphdb_filename, pgosmdb_handle, pggtfsdb_handle, event_dispatch):
         graphdb = GraphDatabase( graphdb_filename )
         self.graph = graphdb.incarnate()
@@ -75,6 +75,61 @@ class RouteServer(Servable):
         httpd.serve_forever()
     run_test_server.serve = False
     
+    def wsgi_app(self):
+        """returns a wsgi app which exposes this object as a webservice"""
+        
+        def myapp(environ, start_response):
+            
+            path_info = environ['PATH_INFO']
+            query_string = environ['QUERY_STRING']
+            
+            #if not hasattr(self, 'pattern_cache'):
+            #    self.pattern_cache = [(pth, args, pfunc) for pth, args, pfunc in self.patterns()]
+            self.pattern_cache = [(re.compile('/path_xml'),[],self.path_xml),(re.compile('/transit_path'),[],self.transit_path)] 
+
+            for ppath, pargs, pfunc in self.pattern_cache:
+                if ppath.match(path_info):
+                    
+                    args = cgi.parse_qs(query_string)
+                    args = dict( [(k,v[0]) for k,v in args.iteritems()] )
+                        
+                    try:
+                        #use simplejson to coerce args to native types
+                        #don't attempt to convert an arg 'jsoncallback'; just ignore it.
+                        arglist = []
+                        for k,v in args.iteritems():
+                            if k=="jsoncallback":
+                                arglist.append( (k,v) )
+                            elif k != "_":
+                                arglist.append( (k,json_loads(v)) )
+                        args = dict( arglist )
+                        
+                        #try:
+                        rr = xstr( pfunc(self,**args) )
+                        #except TypeError:
+                        #    problem = "Arguments different than %s"%str(pargs)
+                        #    start_response('500 Internal Error', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
+                        #    return [problem]
+            
+                        if hasattr(pfunc, 'mime'):
+                            mime = pfunc.mime
+                        else:
+                            mime = self.DEFAULT_MIME
+                            
+                        start_response('200 OK', [('Content-type', mime),('Content-Length', str(len(rr)))])
+                        return [rr]
+                    except:
+                        problem = traceback.format_exc()
+                        start_response('500 Internal Error', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
+                        return [problem]
+                        
+            # no match:
+            problem = "No method corresponds to path '%s'"%environ['PATH_INFO']
+            start_response('404 Not Found', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
+            return [problem]
+            
+        return myapp
+
     def transit_path(self, trip_id, board_stop_id, alight_stop_id, origlon=0, origlat=0, destlon=0, destlat=0):
         
         sys.stderr.write("[transit_path_entry_point," + str(time.time()) + "]\n")
