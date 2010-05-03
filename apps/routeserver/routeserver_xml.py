@@ -21,6 +21,12 @@ from math import fmod, sin, cos, atan2, pi, degrees
 from graphserver.ext.osm.vincenty import vincenty
 import json
 
+from types import *
+import re
+import traceback
+from urlparse import urlparse
+
+
 class ChicagoMap:
     bounding_lon_left=-89.106976260401382
     bounding_lat_bottom=41.028302192122915
