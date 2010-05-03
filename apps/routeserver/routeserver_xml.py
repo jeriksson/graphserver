@@ -31,6 +31,11 @@ try:
 except ImportError:
     from json import loads as json_loads
 
+def xstr(arg):
+    if arg is None:
+        return ""
+    else:
+        return arg.encode('utf8')
 
 class ChicagoMap:
     bounding_lon_left=-89.106976260401382
