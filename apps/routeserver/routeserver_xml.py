@@ -112,13 +112,13 @@ class RouteServer:
                     try:
                         #use simplejson to coerce args to native types
                         #don't attempt to convert an arg 'jsoncallback'; just ignore it.
-                        arglist = []
-                        for k,v in args.iteritems():
-                            if k=="jsoncallback":
-                                arglist.append( (k,v) )
-                            elif k != "_":
-                                arglist.append( (k,json_loads(v)) )
-                        args = dict( arglist )
+                        arglist = args #[]
+#                        for k,v in args.iteritems():
+#                            if k=="jsoncallback":
+#                                arglist.append( (k,v) )
+#                            elif k != "_":
+#                                arglist.append( (k,json_loads(v)) )
+#                        args = dict( arglist )
                         
                         #try:
                         rr = xstr( pfunc(self,**args) )
