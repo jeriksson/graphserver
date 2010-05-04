@@ -108,7 +108,7 @@ class RouteServer:
                     
                     args = cgi.parse_qs(query_string)
                     args = dict( [(k,v[0]) for k,v in args.iteritems()] )
-                        
+                    print args
                     try:
                         #use simplejson to coerce args to native types
                         #don't attempt to convert an arg 'jsoncallback'; just ignore it.
