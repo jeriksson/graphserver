@@ -101,7 +101,7 @@ class RouteServer:
             
             #if not hasattr(self, 'pattern_cache'):
             #    self.pattern_cache = [(pth, args, pfunc) for pth, args, pfunc in self.patterns()]
-            self.pattern_cache = [(re.compile('/path_xml'),[],path_xml),(re.compile('/transit_path'),[],transit_path)] 
+            self.pattern_cache = [(re.compile('/path_xml'),[],self.path_xml),(re.compile('/transit_path'),[],self.transit_path)] 
 
             for ppath, pargs, pfunc in self.pattern_cache:
                 if ppath.match(path_info):
@@ -121,7 +121,7 @@ class RouteServer:
 #                        args = dict( arglist )
                         
                         #try:
-                        rr = xstr( pfunc(self,**args) )
+                        rr = xstr( pfunc(**args) )
                         #except TypeError:
                         #    problem = "Arguments different than %s"%str(pargs)
                         #    start_response('500 Internal Error', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
