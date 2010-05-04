@@ -121,7 +121,7 @@ class RouteServer:
                         args = dict( arglist )
                         
                         #try:
-                        for value in pfunc(**args) 
+                        for value in pfunc(**args):
                             rr = xstr( value )
                         #except TypeError:
                         #    problem = "Arguments different than %s"%str(pargs)
