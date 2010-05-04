@@ -121,7 +121,8 @@ class RouteServer:
                         args = dict( arglist )
                         
                         #try:
-                        rr = xstr( pfunc(**args) )
+                        for value in pfunc(**args) 
+                            rr = xstr( value )
                         #except TypeError:
                         #    problem = "Arguments different than %s"%str(pargs)
                         #    start_response('500 Internal Error', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
@@ -161,8 +162,8 @@ class RouteServer:
         ret_string += '</transit>'
         
         sys.stderr.write("[transit_path_exit_point," + str(time.time()) + "]\n")
-        
-        return ret_string
+        yield ret_string
+        return
         
     transit_path.mime = "text/xml"
     
@@ -176,7 +177,8 @@ class RouteServer:
             destlat <= ChicagoMap.bounding_lat_bottom or destlat >= ChicagoMap.bounding_lat_top):
             
             sys.stderr.write("[exit_outside_bounding_box," + str(time.time()) + "]\n")
-            return '<?xml version="1.0"?><routes></routes>'
+            raise Exception
+            #return '<?xml version="1.0"?><routes></routes>'
         
         # initialize spt to 'None' object
         spt = None
@@ -291,14 +293,14 @@ class RouteServer:
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
                 if (spt is None):
-                    return ret_string + '</routes>'
+                    raise Exception
                 
                 # get path based on departure time
                 dep_vertices, dep_edges = spt.path( dest )
                 
                 # if there are no edges or vertices (i.e., there is no path found)
                 if ((dep_edges is None) or (dep_vertices is None)):
-                    return ret_string + '</routes>'
+                    raise Exception
                 
                 # grab soonest arrival time
                 soonest_arr_time = dep_vertices[-1].payload.time
@@ -313,7 +315,7 @@ class RouteServer:
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
                 if (arr_spt is None):
-                    return ret_string + '</routes>'
+                    raise Exception
                 
                 # get path based on soonest arrival time
                 arr_vertices, arr_edges = arr_spt.path_retro( origin )
@@ -348,14 +350,14 @@ class RouteServer:
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
                 if (spt is None):
-                    return ret_string + '</routes>'
+                    raise Exception
                 
                 # get path based on arrival time
                 arr_vertices, arr_edges = spt.path_retro( origin )
                 
                 # if there are no edges or vertices (i.e., there is no path found)
                 if ((arr_edges is None) or (arr_vertices is None)):
-                    return ret_string + '</routes>'
+                    raise Exception
                 
                 # grab latest departure time
                 latest_dep_time = arr_vertices[0].payload.time
@@ -366,7 +368,7 @@ class RouteServer:
                 
                 # if there is no shortest path tree (i.e., there is no path between the origin and destination)
                 if (dep_spt is None):
-                    return ret_string + '</routes>'
+                    raise Exception
                 
                 # get path based on latest departure time
                 dep_vertices, dep_edges = dep_spt.path( dest )
@@ -396,7 +398,7 @@ class RouteServer:
             
             # if there are no edges or vertices (i.e., there is no path found)
             if ((edges is None) or (vertices is None)):
-                return ret_string + '</routes>'
+                raise Exception
             
             # check to see if route departs before the current time (i.e., is an invalid route)
             #if (vertices[0].payload.time < dep_time):
@@ -455,8 +457,9 @@ class RouteServer:
             sys.stderr.write("[xml_path_exit_point," + str(time.time()) + "]\n")
             
             # return routes xml
-            return str(ret_string)
-
+            yield str(ret_string)
+        except:
+            yield '<?xml version="1.0"?><routes></routes>'
         finally:
             # destroy shortest path tree
             if (spt is not None):
