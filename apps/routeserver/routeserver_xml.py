@@ -108,17 +108,17 @@ class RouteServer:
                     
                     args = cgi.parse_qs(query_string)
                     args = dict( [(k,v[0]) for k,v in args.iteritems()] )
-                    print args
+
                     try:
                         #use simplejson to coerce args to native types
                         #don't attempt to convert an arg 'jsoncallback'; just ignore it.
-                        arglist = args #[]
-#                        for k,v in args.iteritems():
-#                            if k=="jsoncallback":
-#                                arglist.append( (k,v) )
-#                            elif k != "_":
-#                                arglist.append( (k,json_loads(v)) )
-#                        args = dict( arglist )
+                        arglist = []
+                        for k,v in args.iteritems():
+                            if k=="jsoncallback":
+                                arglist.append( (k,v) )
+                            elif k != "_":
+                                arglist.append( (k,json_loads(v)) )
+                        args = dict( arglist )
                         
                         #try:
                         rr = xstr( pfunc(**args) )
@@ -456,7 +456,7 @@ class RouteServer:
             
             # return routes xml
             return str(ret_string)
-            
+
         finally:
             # destroy shortest path tree
             if (spt is not None):
