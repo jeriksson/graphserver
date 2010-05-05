@@ -75,7 +75,12 @@ class RouteInfo:
 class MyWSGIServer(ForkingMixIn, WSGIServer):
     pass
 
+class RoutingException (Exception):
+    pass
+
 class RouteServer:
+    DEFAULT_MIME = "text/plain"        
+
     def __init__(self, graphdb_filename, pgosmdb_handle, pggtfsdb_handle, event_dispatch):
         graphdb = GraphDatabase( graphdb_filename )
         self.graph = graphdb.incarnate()
@@ -120,21 +125,22 @@ class RouteServer:
                                 arglist.append( (k,json_loads(v)) )
                         args = dict( arglist )
                         
-                        #try:
-                        for value in pfunc(**args):
-                            rr = xstr( value )
-                        #except TypeError:
-                        #    problem = "Arguments different than %s"%str(pargs)
-                        #    start_response('500 Internal Error', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
-                        #    return [problem]
-            
                         if hasattr(pfunc, 'mime'):
                             mime = pfunc.mime
                         else:
                             mime = self.DEFAULT_MIME
                             
-                        start_response('200 OK', [('Content-type', mime),('Content-Length', str(len(rr)))])
-                        return [rr]
+                        start_response('200 OK', [('Content-type', mime)])
+                        #try:
+#                        for value in pfunc(**args):
+#                            rr = xstr( value )
+                        #except TypeError:
+                        #    problem = "Arguments different than %s"%str(pargs)
+                        #    start_response('500 Internal Error', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
+                        #    return [problem]
+            
+
+                        return pfunc(**args)
                     except:
                         problem = traceback.format_exc()
                         start_response('500 Internal Error', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
@@ -167,7 +173,117 @@ class RouteServer:
         
     transit_path.mime = "text/xml"
     
-    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", less_walking="False", udid="", version="2.0"):
+    def shortest_path(self, origin, dest, dep_time, wo):
+
+        # generate shortest path tree based on departure time
+        sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
+        spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,dep_time), wo )
+                
+        # if there is no shortest path tree (i.e., there is no path between the origin and destination)
+        if (spt is None):
+            raise RoutingException
+                
+        # get path based on departure time
+        dep_vertices, dep_edges = spt.path( dest )
+                
+        # if there are no edges or vertices (i.e., there is no path found)
+        if ((dep_edges is None) or (dep_vertices is None)):
+            raise RoutingException
+                
+        # grab soonest arrival time
+        soonest_arr_time = dep_vertices[-1].payload.time
+                
+        # re-run query using soonest arrival time
+        sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
+        arr_spt = self.graph.shortest_path_tree_retro( origin, dest, State(self.graph.num_agencies,soonest_arr_time), wo )
+                
+        # if there is no shortest path tree (i.e., there is no path between the origin and destination)
+        if (arr_spt is None):
+            raise RoutingException
+                
+        # get path based on soonest arrival time
+        arr_vertices, arr_edges = arr_spt.path_retro( origin )
+                
+        # if route based on soonest arrival time departs in the past, return the original departure-time based route
+        if (arr_vertices[0].payload.time < dep_time):
+                    
+            # destroy arrival-time based shortest path tree
+            if (arr_spt is not None):
+                arr_spt.destroy()
+                    
+            # set vertices and edges
+            vertices = dep_vertices
+            edges = dep_edges
+                
+        else:
+            # destroy departure-time based shortest path tree
+            if (spt is not None):
+                spt.destroy()
+                   
+            # point spt at arrival-time based shortest path tree for proper cleanup
+            spt = arr_spt
+                   
+            # set vertices and edges
+            vertices = arr_vertices
+            edges = arr_edges  
+    
+        return (spt, edges,vertices)
+
+    def shortest_path_retro(self, origin, dest, arr_time, wo):
+        # generate shortest path tree based on arrival time
+        sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
+        spt = self.graph.shortest_path_tree_retro( origin, dest, State(self.graph.num_agencies,arr_time), wo )
+                
+        # if there is no shortest path tree (i.e., there is no path between the origin and destination)
+        if (spt is None): 
+            raise RoutingException
+                
+        # get path based on arrival time
+        arr_vertices, arr_edges = spt.path_retro( origin )
+       
+        # if there are no edges or vertices (i.e., there is no path found)
+        if ((arr_edges is None) or (arr_vertices is None)):
+            raise RoutingException
+                
+        # grab latest departure time
+        latest_dep_time = arr_vertices[0].payload.time
+              
+        # re-run query using latest departure time
+        sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
+        dep_spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,latest_dep_time), wo )
+                
+        # if there is no shortest path tree (i.e., there is no path between the origin and destination)
+        if (dep_spt is None):
+            raise RoutingException
+                
+        # get path based on latest departure time
+        dep_vertices, dep_edges = dep_spt.path( dest )
+                
+        # if route based on latest departure time arrives later than requested arrival time, return the original arrival-time based route
+        if (dep_vertices[-1].payload.time > arr_time):
+                    
+            # destroy departure-time based shortest path tree
+            if (dep_spt is not None): 
+                dep_spt.destroy()
+                    
+            # set vertices and edges
+            vertices = arr_vertices
+            edges = arr_edges
+                
+        else:
+            # destroy departure-time based shortest path tree
+            if (spt is not None): spt.destroy()
+                    
+            # point spt at departure-time based shortest path tree for proper cleanup
+            spt = dep_spt
+                    
+            # set vertices and edges
+            vertices = dep_vertices
+            edges = dep_edges
+
+        return (spt, edges, vertices) 	
+ 
+    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", less_walking="False", udid="", version="2.0"):
         
         sys.stderr.write("[xml_path_entry_point," + str(time.time()) + "] \"origlon=" + str(origlon) + "&origlat=" + str(origlat) + "&destlon=" + str(destlon) + "&destlat=" + str(destlat) + "&dep_time=" + str(dep_time) + "&arr_time=" + str(arr_time) + "&timezone=" + str(timezone) + "&transfer_penalty=" + str(transfer_penalty) + "&walking_speed=" + str(walking_speed) + "&walking_reluctance=" + str(walking_reluctance) + "&max_walk=" + str(max_walk) + "&walking_overage=" + str(walking_overage) + "&seqno=" + str(seqno) + "&street_mode=\"" + str(street_mode) + "\"&less_walking=\"" + str(less_walking) + "\"&udid=\"" + str(udid) + "\"&version=" + str(version) + "\"\n")
         
@@ -177,7 +293,7 @@ class RouteServer:
             destlat <= ChicagoMap.bounding_lat_bottom or destlat >= ChicagoMap.bounding_lat_top):
             
             sys.stderr.write("[exit_outside_bounding_box," + str(time.time()) + "]\n")
-            raise Exception
+            raise RoutingException
             #return '<?xml version="1.0"?><routes></routes>'
         
         # initialize spt to 'None' object
@@ -257,11 +373,6 @@ class RouteServer:
             
             #print "Adjusted departure time: " + str(dep_time)
             
-            # initialize return string
-            ret_string = '<?xml version="1.0"?><routes>'
-            
-            ##################################################
-            
             wo = WalkOptions()
             wo.transfer_penalty=transfer_penalty
             wo.walking_speed=walking_speed
@@ -277,195 +388,91 @@ class RouteServer:
             if (street_mode == "bike"):
                 wo.transfer_penalty *= 10
             
-            #if (arr_time == 0):
-            #    spt = self.graph.shortest_path_tree( origin, dest, State(1,dep_time), wo )
-            #else:
-            #    spt = self.graph.shortest_path_tree_retro( origin, dest, State(1,arr_time), wo )
-            
-            # if there is no shortest path tree (i.e., there is no path between the origin and destination)
-            #if (spt is None):
-            #    return ret_string + '</routes>'
-            
-            if (arr_time == 0):
-                # generate shortest path tree based on departure time
-                sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
-                spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,dep_time), wo )
-                
-                # if there is no shortest path tree (i.e., there is no path between the origin and destination)
-                if (spt is None):
-                    raise Exception
-                
-                # get path based on departure time
-                dep_vertices, dep_edges = spt.path( dest )
-                
-                # if there are no edges or vertices (i.e., there is no path found)
-                if ((dep_edges is None) or (dep_vertices is None)):
-                    raise Exception
-                
-                # grab soonest arrival time
-                soonest_arr_time = dep_vertices[-1].payload.time
-                
-                # destroy shortest path tree
-                #if (spt is not None):
-                #    spt.destroy()
-                
-                # re-run query using soonest arrival time
-                sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
-                arr_spt = self.graph.shortest_path_tree_retro( origin, dest, State(self.graph.num_agencies,soonest_arr_time), wo )
-                
-                # if there is no shortest path tree (i.e., there is no path between the origin and destination)
-                if (arr_spt is None):
-                    raise Exception
-                
-                # get path based on soonest arrival time
-                arr_vertices, arr_edges = arr_spt.path_retro( origin )
-                
-                # if route based on soonest arrival time departs in the past, return the original departure-time based route
-                if (arr_vertices[0].payload.time < dep_time):
-                    
-                    # destroy arrival-time based shortest path tree
-                    if (arr_spt is not None):
-                        arr_spt.destroy()
-                    
-                    # set vertices and edges
-                    vertices = dep_vertices
-                    edges = dep_edges
-                
-                else:
-                    # destroy departure-time based shortest path tree
-                    if (spt is not None):
-                        spt.destroy()
-                    
-                    # point spt at arrival-time based shortest path tree for proper cleanup
-                    spt = arr_spt
-                    
-                    # set vertices and edges
-                    vertices = arr_vertices
-                    edges = arr_edges
-                
-            else:
-                # generate shortest path tree based on arrival time
-                sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
-                spt = self.graph.shortest_path_tree_retro( origin, dest, State(self.graph.num_agencies,arr_time), wo )
-                
-                # if there is no shortest path tree (i.e., there is no path between the origin and destination)
-                if (spt is None):
-                    raise Exception
-                
-                # get path based on arrival time
-                arr_vertices, arr_edges = spt.path_retro( origin )
-                
-                # if there are no edges or vertices (i.e., there is no path found)
-                if ((arr_edges is None) or (arr_vertices is None)):
-                    raise Exception
-                
-                # grab latest departure time
-                latest_dep_time = arr_vertices[0].payload.time
-                
-                # re-run query using latest departure time
-                sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
-                dep_spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,latest_dep_time), wo )
-                
-                # if there is no shortest path tree (i.e., there is no path between the origin and destination)
-                if (dep_spt is None):
-                    raise Exception
-                
-                # get path based on latest departure time
-                dep_vertices, dep_edges = dep_spt.path( dest )
-                
-                # if route based on latest departure time arrives later than requested arrival time, return the original arrival-time based route
-                if (dep_vertices[-1].payload.time > arr_time):
-                    
-                    # destroy departure-time based shortest path tree
-                    if (dep_spt is not None):
-                        dep_spt.destroy()
-                    
-                    # set vertices and edges
-                    vertices = arr_vertices
-                    edges = arr_edges
-                
-                else:
-                    # destroy departure-time based shortest path tree
-                    if (spt is not None):
-                        spt.destroy()
-                    
-                    # point spt at departure-time based shortest path tree for proper cleanup
-                    spt = dep_spt
-                    
-                    # set vertices and edges
-                    vertices = dep_vertices
-                    edges = dep_edges
-            
-            # if there are no edges or vertices (i.e., there is no path found)
-            if ((edges is None) or (vertices is None)):
-                raise Exception
-            
-            # check to see if route departs before the current time (i.e., is an invalid route)
-            #if (vertices[0].payload.time < dep_time):
-            #    return ret_string + '</routes>'
-            
-            # destroy WalkOptions object
-            wo.destroy()
-            
-            # create WalkPath object
-            walk_path = WalkPath()
-            walk_path.lastlat = origlat
-            walk_path.lastlon = origlon
-            walk_path.timezone = timezone
-            
-            # determine the number of edges
-            edges_len = len(edges)
-            
-            # string to store returned route
-            curr_route = ""
-            
             # create RouteInfo object
             route_info = RouteInfo()
             route_info.origlat = origlat
             route_info.origlon = origlon
-            route_info.actual_dep_time = vertices[0].payload.time - time_to_orig
             route_info.dep_time_diff = time_to_orig
             route_info.destlat = destlat
             route_info.destlon = destlon
-            route_info.actual_arr_time = vertices[-1].payload.time + time_to_dest
             route_info.arr_time_diff = time_to_dest
             route_info.street_mode = street_mode
             
-            # iterate through all edges in the route
-            sys.stderr.write("[edges_loop," + str(time.time()) + "]\n")
-            for i in range(edges_len):
+            yield "--multipart-path_xml-boundary1234\n";
+
+			# loop to create multiple responses
+            for q in range(max_results): 
+                route_info.last_edge = False
+
+                # initialize return string
+                ret_string = 'Content-Type: text/xml\n\n<?xml version="1.0"?><routes>'
                 
-                if (i == (edges_len-1)):
-                    route_info.last_edge = True
-                elif (i == (edges_len-2) and edges[i+1].payload.__class__ == graphserver.core.Link):
-                    route_info.last_edge = True
-                elif (i == (edges_len-3) and edges[i+1].payload.__class__ == graphserver.core.Link and edges[i+2].payload.__class__ == graphserver.core.Link):
-                    route_info.last_edge = True
+                if (arr_time == 0):
+                    (spt, edges, vertices)=self.shortest_path(origin,dest,dep_time,wo)
+                else:
+ 		            (spt, edges, vertices)=self.shortest_path_retro(origin,dest,arr_time,wo)
+            
+                # if there are no edges or vertices (i.e., there is no path found)
+                if ((edges is None) or (vertices is None)): raise RoutingException
+            
+                # create WalkPath object
+                walk_path = WalkPath()
+                walk_path.lastlat = origlat
+                walk_path.lastlon = origlon
+                walk_path.timezone = timezone
+            
+                # string to store returned route
+                curr_route = ""
+            
+                route_info.actual_dep_time = vertices[0].payload.time - time_to_orig
+                route_info.actual_arr_time = vertices[-1].payload.time + time_to_dest
+            
+                # iterate through all edges in the route
+                sys.stderr.write("[edges_loop," + str(time.time()) + "]\n")
+
+                # determine the number of edges
+                edges_len = len(edges)            
+                for i in range(edges_len):
+                
+                    if (i == (edges_len-1)):
+                        route_info.last_edge = True
+                    elif (i == (edges_len-2) and edges[i+1].payload.__class__ == graphserver.core.Link):
+                        route_info.last_edge = True
+                    elif (i == (edges_len-3) and edges[i+1].payload.__class__ == graphserver.core.Link and edges[i+2].payload.__class__ == graphserver.core.Link):
+                        route_info.last_edge = True
             	
-                edgetype = edges[i].payload.__class__
-                if edgetype in self.event_dispatch:
-                    (new_event, walk_path, route_info) = self.event_dispatch[ edges[i].payload.__class__ ]( vertices[i], edges[i], vertices[i+1], walk_path, route_info)
-                    curr_route += new_event
+                    edgetype = edges[i].payload.__class__
+                    if edgetype in self.event_dispatch:
+                        (new_event, walk_path, route_info) = self.event_dispatch[ edges[i].payload.__class__ ]( vertices[i], edges[i], vertices[i+1], walk_path, route_info)
+                        curr_route += new_event
             
-            ret_string += '<route dep_time="' + str(vertices[0].payload.time - time_to_orig) + '" req_dep_time="' + str(dep_time - time_to_orig) + '" arr_time="' + str(vertices[-1].payload.time + time_to_dest) + '" req_arr_time="' + str(arr_time) + '" timezone="' + timezone + '" total_time="' + str(vertices[-1].payload.time - vertices[0].payload.time + time_to_orig + time_to_dest) + '" total_walk_distance="' + str(int(round(walk_path.total_distance)) + int(round(orig_distance)) + int(round(dest_distance))) + '" walking_speed="' + str(walking_speed) + '" seqno="' + str(seqno) + '" version="' + str(version) + '">' + curr_route + '</route>'
+                ret_string += '<route dep_time="' + str(route_info.actual_dep_time) + '" req_dep_time="' + str(dep_time - time_to_orig) + '" arr_time="' + str(route_info.actual_arr_time) + '" req_arr_time="' + str(arr_time) + '" timezone="' + timezone + '" total_time="' + str(route_info.actual_arr_time - route_info.actual_dep_time) + '" total_walk_distance="' + str(int(round(walk_path.total_distance)) + int(round(orig_distance)) + int(round(dest_distance))) + '" walking_speed="' + str(walking_speed) + '" seqno="' + str(seqno) + '" version="' + str(version) + '">' + curr_route + '</route>'
+    		        
             
-            ##################################################
+                # close return string
+                ret_string += '</routes>\n\n--multipart-path_xml-boundary1234\n'
+                sys.stderr.write("[xml_path_exit_point," + str(time.time()) + "]\n")
             
-            # close return string
-            ret_string += '</routes>'
-            
-            sys.stderr.write("[xml_path_exit_point," + str(time.time()) + "]\n")
-            
-            # return routes xml
-            yield str(ret_string)
-        except:
-            yield '<?xml version="1.0"?><routes></routes>'
+                # return routes xml
+                yield xstr(str(ret_string))
+        
+                if arr_time == 0: 
+                    dep_time = route_info.actual_dep_time + time_to_orig + 60
+                else:
+                    arr_time = route_info.actual_arr_time - time_to_dest - 60 
+
+        except RoutingException:
+            yield '\n\n--multipart-path_xml-boundary1234\nContent-Type: text/xml\n\n<?xml version="1.0"?><routes></routes>--multipart-path_xml-boundary1234--\n\n '
         finally:
+            yield '\n\n--multipart-path_xml-boundary1234--\n\n'
+            # destroy WalkOptions object
+            wo.destroy()
+            
             # destroy shortest path tree
             if (spt is not None):
                 spt.destroy()
         
-    path_xml.mime = "text/xml"
+    path_xml.mime = 'multipart/x-mixed-replace; boundary="--multipart-path_xml-boundary1234"'
 
 
 import sys
