@@ -71,6 +71,7 @@ class RouteInfo:
         self.first_edge = True
         self.last_edge = False
         self.street_mode = ""
+        self.retro_route = False
 
 class MyWSGIServer(ForkingMixIn, WSGIServer):
     pass
@@ -174,6 +175,9 @@ class RouteServer:
     
     def shortest_path(self, origin, dest, dep_time, wo):
         
+        # flag for retro-routes
+        retro_route = False
+        
         # generate shortest path tree based on departure time
         sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
         spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,dep_time), wo )
@@ -224,11 +228,17 @@ class RouteServer:
             
             # set vertices and edges
             vertices = arr_vertices
-            edges = arr_edges  
+            edges = arr_edges
             
-        return (spt, edges,vertices)
+            # set retro-route flag
+            retro_route = True
+            
+        return (spt, edges, vertices, retro_route)
     
     def shortest_path_retro(self, origin, dest, arr_time, wo):
+        
+        # flag for retro-routes
+        retro_route = True
         
         # generate shortest path tree based on arrival time
         sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
@@ -281,7 +291,10 @@ class RouteServer:
             vertices = dep_vertices
             edges = dep_edges
             
-        return (spt, edges, vertices) 	
+            # set retro-route flag
+            retro_route = False
+            
+        return (spt, edges, vertices, retro_route) 	
     
     def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", less_walking="False", udid="", version="2.0"):
         
@@ -408,10 +421,10 @@ class RouteServer:
                 ret_string = 'Content-Type: text/xml\n\n<?xml version="1.0"?><routes>'
                 
                 if (arr_time == 0):
-                    (spt, edges, vertices)=self.shortest_path(origin,dest,dep_time,wo)
+                    (spt, edges, vertices, route_info.retro_route) = self.shortest_path(origin,dest,dep_time,wo)
                 else:
- 		            (spt, edges, vertices)=self.shortest_path_retro(origin,dest,arr_time,wo)
- 		        
+                    (spt, edges, vertices, route_info.retro_route) = self.shortest_path_retro(origin,dest,arr_time,wo)
+                
                 # if there are no edges or vertices (i.e., there is no path found)
                 if ((edges is None) or (vertices is None)): raise RoutingException
                 
@@ -605,6 +618,25 @@ if __name__ == '__main__':
         agency_id = list( pggtfsdb.execute( "SELECT agency_id FROM routes WHERE route_id='" + str(route_desc[0][0]) + "'") )[0][0]
         
         boardtime = str(event_time) #str(TimeHelpers.unix_to_localtime( event_time, "America/Chicago" ))
+        
+        boardtime_struct = time.localtime(event_time)
+        start_of_day = time.mktime([boardtime_struct.tm_year, boardtime_struct.tm_mon, boardtime_struct.tm_mday, 0, 0, 0, boardtime_struct.tm_wday, boardtime_struct.tm_yday, -1])
+        
+        alt_boardtimes_list = []
+        
+        if (route_info.retro_route is True):
+            vertex1_edge_list = vertex1.incoming
+        else:
+            vertex1_edge_list = vertex1.outgoing
+        
+        for curr_edge in vertex1_edge_list: #vertex1.incoming: #.outgoing # for forward queries
+            for i in range(curr_edge.payload.num_boardings):
+                alt_boardtime = (curr_edge.payload.get_boarding(i)[1] + start_of_day)
+                if (alt_boardtime >= route_info.actual_dep_time):
+                    alt_boardtimes_list.append(int(alt_boardtime))
+        
+        alt_boardtimes = ",".join(["%s" % bt for bt in alt_boardtimes_list])
+        
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
         
@@ -621,7 +653,7 @@ if __name__ == '__main__':
         if ("PACE_" in route_id):
             route_id = str(route_desc[0][2])
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][3]) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][3]) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" alt_board_times="' + str(alt_boardtimes) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
@@ -673,6 +705,25 @@ if __name__ == '__main__':
         agency_id = list( pggtfsdb.execute( "SELECT agency_id FROM routes WHERE route_id='" + str(route_desc[0][0]) + "'") )[0][0]
         
         boardtime = str(event_time) #str(TimeHelpers.unix_to_localtime( event_time, "America/Chicago" ))
+        
+        boardtime_struct = time.localtime(event_time)
+        start_of_day = time.mktime([boardtime_struct.tm_year, boardtime_struct.tm_mon, boardtime_struct.tm_mday, 0, 0, 0, boardtime_struct.tm_wday, boardtime_struct.tm_yday, -1])
+        
+        alt_boardtimes_list = []
+        
+        if (route_info.retro_route is True):
+            vertex1_edge_list = vertex1.incoming
+        else:
+            vertex1_edge_list = vertex1.outgoing
+        
+        for curr_edge in vertex1_edge_list: #vertex1.incoming: #.outgoing # for forward queries
+            for i in range(curr_edge.payload.num_boardings):
+                alt_boardtime = (curr_edge.payload.get_boarding(i)[1] + start_of_day)
+                if (alt_boardtime >= route_info.actual_dep_time):
+                    alt_boardtimes_list.append(int(alt_boardtime))
+        
+        alt_boardtimes = ",".join(["%s" % bt for bt in alt_boardtimes_list])
+        
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
         
@@ -685,7 +736,7 @@ if __name__ == '__main__':
             ret_string += '</' + route_info.street_mode + '>'
             route_info.first_edge = False
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][2]) + '" route_id="' + str(route_desc[0][0]) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][2]) + '" route_id="' + str(route_desc[0][0]) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" alt_board_times="' + str(alt_boardtimes) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
