@@ -635,6 +635,7 @@ if __name__ == '__main__':
                 if (alt_boardtime >= route_info.actual_dep_time):
                     alt_boardtimes_list.append(int(alt_boardtime))
         
+        alt_boardtimes_list.sort()
         alt_boardtimes = ",".join(["%s" % bt for bt in alt_boardtimes_list])
         
         #stop_desc = stop_desc.replace("&","&amp;")
@@ -722,6 +723,7 @@ if __name__ == '__main__':
                 if (alt_boardtime >= route_info.actual_dep_time):
                     alt_boardtimes_list.append(int(alt_boardtime))
         
+        alt_boardtimes_list.sort()
         alt_boardtimes = ",".join(["%s" % bt for bt in alt_boardtimes_list])
         
         #stop_desc = stop_desc.replace("&","&amp;")
