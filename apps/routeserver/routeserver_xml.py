@@ -622,21 +622,21 @@ if __name__ == '__main__':
         boardtime_struct = time.localtime(event_time)
         start_of_day = time.mktime([boardtime_struct.tm_year, boardtime_struct.tm_mon, boardtime_struct.tm_mday, 0, 0, 0, boardtime_struct.tm_wday, boardtime_struct.tm_yday, -1])
         
-        alt_boardtimes_list = []
+        boardtime_offsets_list = []
         
         if (route_info.retro_route is True):
             vertex1_edge_list = vertex1.incoming
         else:
             vertex1_edge_list = vertex1.outgoing
         
-        for curr_edge in vertex1_edge_list: #vertex1.incoming: #.outgoing # for forward queries
+        for curr_edge in vertex1_edge_list:
             for i in range(curr_edge.payload.num_boardings):
                 alt_boardtime = (curr_edge.payload.get_boarding(i)[1] + start_of_day)
-                if (alt_boardtime >= route_info.actual_dep_time):
-                    alt_boardtimes_list.append(int(alt_boardtime))
+                if (alt_boardtime >= (event_time - 900) and alt_boardtime <= (event_time + 3600)):
+                    boardtime_offsets_list.append(int(alt_boardtime - event_time))
         
-        alt_boardtimes_list.sort()
-        alt_boardtimes = ",".join(["%s" % bt for bt in alt_boardtimes_list])
+        boardtime_offsets_list.sort()
+        boardtime_offsets = ",".join(["%s" % bt for bt in boardtime_offsets_list])
         
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
@@ -654,7 +654,7 @@ if __name__ == '__main__':
         if ("PACE_" in route_id):
             route_id = str(route_desc[0][2])
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][3]) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" alt_board_times="' + str(alt_boardtimes) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][3]) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
@@ -710,21 +710,21 @@ if __name__ == '__main__':
         boardtime_struct = time.localtime(event_time)
         start_of_day = time.mktime([boardtime_struct.tm_year, boardtime_struct.tm_mon, boardtime_struct.tm_mday, 0, 0, 0, boardtime_struct.tm_wday, boardtime_struct.tm_yday, -1])
         
-        alt_boardtimes_list = []
+        boardtime_offsets_list = []
         
         if (route_info.retro_route is True):
             vertex1_edge_list = vertex1.incoming
         else:
             vertex1_edge_list = vertex1.outgoing
         
-        for curr_edge in vertex1_edge_list: #vertex1.incoming: #.outgoing # for forward queries
+        for curr_edge in vertex1_edge_list:
             for i in range(curr_edge.payload.num_boardings):
                 alt_boardtime = (curr_edge.payload.get_boarding(i)[1] + start_of_day)
-                if (alt_boardtime >= route_info.actual_dep_time):
-                    alt_boardtimes_list.append(int(alt_boardtime))
+                if (alt_boardtime >= (event_time - 900) and alt_boardtime <= (event_time + 3600)):
+                    boardtime_offsets_list.append(int(alt_boardtime - event_time))
         
-        alt_boardtimes_list.sort()
-        alt_boardtimes = ",".join(["%s" % bt for bt in alt_boardtimes_list])
+        boardtime_offsets_list.sort()
+        boardtime_offsets = ",".join(["%s" % bt for bt in boardtime_offsets_list])
         
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
@@ -738,7 +738,7 @@ if __name__ == '__main__':
             ret_string += '</' + route_info.street_mode + '>'
             route_info.first_edge = False
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][2]) + '" route_id="' + str(route_desc[0][0]) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" alt_board_times="' + str(alt_boardtimes) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][2]) + '" route_id="' + str(route_desc[0][0]) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
