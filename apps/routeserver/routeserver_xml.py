@@ -71,7 +71,6 @@ class RouteInfo:
         self.first_edge = True
         self.last_edge = False
         self.street_mode = ""
-        self.retro_route = False
 
 class MyWSGIServer(ForkingMixIn, WSGIServer):
     pass
@@ -175,9 +174,6 @@ class RouteServer:
     
     def shortest_path(self, origin, dest, dep_time, wo):
         
-        # flag for retro-routes
-        retro_route = False
-        
         # generate shortest path tree based on departure time
         sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
         spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,dep_time), wo )
@@ -230,15 +226,9 @@ class RouteServer:
             vertices = arr_vertices
             edges = arr_edges
             
-            # set retro-route flag
-            retro_route = True
-            
-        return (spt, edges, vertices, retro_route)
+        return (spt, edges, vertices)
     
     def shortest_path_retro(self, origin, dest, arr_time, wo):
-        
-        # flag for retro-routes
-        retro_route = True
         
         # generate shortest path tree based on arrival time
         sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
@@ -291,10 +281,7 @@ class RouteServer:
             vertices = dep_vertices
             edges = dep_edges
             
-            # set retro-route flag
-            retro_route = False
-            
-        return (spt, edges, vertices, retro_route) 	
+        return (spt, edges, vertices)
     
     def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", less_walking="False", udid="", version="2.0"):
         
@@ -421,9 +408,9 @@ class RouteServer:
                 ret_string = 'Content-Type: text/xml\n\n<?xml version="1.0"?><routes>'
                 
                 if (arr_time == 0):
-                    (spt, edges, vertices, route_info.retro_route) = self.shortest_path(origin,dest,dep_time,wo)
+                    (spt, edges, vertices) = self.shortest_path(origin,dest,dep_time,wo)
                 else:
-                    (spt, edges, vertices, route_info.retro_route) = self.shortest_path_retro(origin,dest,arr_time,wo)
+                    (spt, edges, vertices) = self.shortest_path_retro(origin,dest,arr_time,wo)
                 
                 # if there are no edges or vertices (i.e., there is no path found)
                 if ((edges is None) or (vertices is None)): raise RoutingException
@@ -624,19 +611,12 @@ if __name__ == '__main__':
         
         boardtime_offsets_list = []
         
-        if (route_info.retro_route is True):
-            vertex1_edge_list = vertex1.incoming
-        else:
-            vertex1_edge_list = vertex1.outgoing
+        for i in range(edge.payload.num_boardings):
+            alt_boardtime = (edge.payload.get_boarding(i)[1] + start_of_day)
+            if (alt_boardtime >= (event_time - 900) and alt_boardtime <= (event_time + 3600)):
+                boardtime_offsets_list.append(str(int(alt_boardtime - event_time)))
         
-        for curr_edge in vertex1_edge_list:
-            for i in range(curr_edge.payload.num_boardings):
-                alt_boardtime = (curr_edge.payload.get_boarding(i)[1] + start_of_day)
-                if (alt_boardtime >= (event_time - 900) and alt_boardtime <= (event_time + 3600)):
-                    boardtime_offsets_list.append(int(alt_boardtime - event_time))
-        
-        boardtime_offsets_list.sort()
-        boardtime_offsets = ",".join(["%s" % bt for bt in boardtime_offsets_list])
+        boardtime_offsets = ",".join(boardtime_offsets_list)
         
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
@@ -712,19 +692,12 @@ if __name__ == '__main__':
         
         boardtime_offsets_list = []
         
-        if (route_info.retro_route is True):
-            vertex1_edge_list = vertex1.incoming
-        else:
-            vertex1_edge_list = vertex1.outgoing
+        for i in range(edge.payload.num_boardings):
+            alt_boardtime = (edge.payload.get_boarding(i)[1] + start_of_day)
+            if (alt_boardtime >= (event_time - 900) and alt_boardtime <= (event_time + 3600)):
+                boardtime_offsets_list.append(str(int(alt_boardtime - event_time)))
         
-        for curr_edge in vertex1_edge_list:
-            for i in range(curr_edge.payload.num_boardings):
-                alt_boardtime = (curr_edge.payload.get_boarding(i)[1] + start_of_day)
-                if (alt_boardtime >= (event_time - 900) and alt_boardtime <= (event_time + 3600)):
-                    boardtime_offsets_list.append(int(alt_boardtime - event_time))
-        
-        boardtime_offsets_list.sort()
-        boardtime_offsets = ",".join(["%s" % bt for bt in boardtime_offsets_list])
+        boardtime_offsets = ",".join(boardtime_offsets_list)
         
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
