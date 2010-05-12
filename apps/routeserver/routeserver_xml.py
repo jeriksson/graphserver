@@ -449,7 +449,11 @@ class RouteServer:
                 ret_string += '<route dep_time="' + str(route_info.actual_dep_time) + '" req_dep_time="' + str(dep_time - time_to_orig) + '" arr_time="' + str(route_info.actual_arr_time) + '" req_arr_time="' + str(arr_time) + '" timezone="' + timezone + '" total_time="' + str(route_info.actual_arr_time - route_info.actual_dep_time) + '" total_walk_distance="' + str(int(round(walk_path.total_distance)) + int(round(orig_distance)) + int(round(dest_distance))) + '" walking_speed="' + str(walking_speed) + '" seqno="' + str(seqno) + '" version="' + str(version) + '">' + curr_route + '</route>'
                 
                 # close return string
-                ret_string += '</routes>\n\n--multipart-path_xml-boundary1234\n'
+                if q == max_results:                    
+                    ret_string += '</routes>\n\n--multipart-path_xml-boundary1234--\n\n'
+                else:
+                    ret_string += '</routes>\n\n--multipart-path_xml-boundary1234\n'
+
                 sys.stderr.write("[xml_path_exit_point," + str(time.time()) + "]\n")
                 
                 # return routes xml
@@ -463,7 +467,7 @@ class RouteServer:
         except RoutingException:
             yield '\n\n--multipart-path_xml-boundary1234\nContent-Type: text/xml\n\n<?xml version="1.0"?><routes></routes>--multipart-path_xml-boundary1234--\n\n '
         finally:
-            yield '\n\n--multipart-path_xml-boundary1234--\n\n'
+#            yield '\n\n--multipart-path_xml-boundary1234--\n\n'
             # destroy WalkOptions object
             wo.destroy()
             
