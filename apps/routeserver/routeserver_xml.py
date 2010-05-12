@@ -620,6 +620,7 @@ if __name__ == '__main__':
         
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
+        stop_headsign = stop_headsign.replace("&","and")
         
         # if this is the first edge in the route
         if (route_info.first_edge):
@@ -701,6 +702,7 @@ if __name__ == '__main__':
         
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
+        stop_headsign = stop_headsign.replace("&","and")
         
         # if this is the first edge in the route
         if (route_info.first_edge):
