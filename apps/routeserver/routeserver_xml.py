@@ -617,7 +617,7 @@ if __name__ == '__main__':
         
         for i in range(edge.payload.num_boardings):
             alt_boardtime = (edge.payload.get_boarding(i)[1] + start_of_day)
-            if (alt_boardtime >= (event_time - 900) and alt_boardtime <= (event_time + 3600)):
+            if (alt_boardtime >= (event_time - 3600) and alt_boardtime <= (event_time + 3600)):
                 boardtime_offsets_list.append(str(int(alt_boardtime - event_time)))
         
         boardtime_offsets = ",".join(boardtime_offsets_list)
@@ -699,7 +699,7 @@ if __name__ == '__main__':
         
         for i in range(edge.payload.num_boardings):
             alt_boardtime = (edge.payload.get_boarding(i)[1] + start_of_day)
-            if (alt_boardtime >= (event_time - 900) and alt_boardtime <= (event_time + 3600)):
+            if (alt_boardtime >= (event_time - 3600) and alt_boardtime <= (event_time + 3600)):
                 boardtime_offsets_list.append(str(int(alt_boardtime - event_time)))
         
         boardtime_offsets = ",".join(boardtime_offsets_list)
