@@ -283,7 +283,7 @@ class RouteServer:
             
         return (spt, edges, vertices)
     
-    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", less_walking="False", udid="", version="2.0"):
+    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0"):
         
         sys.stderr.write("[xml_path_entry_point," + str(time.time()) + "] \"origlon=" + str(origlon) + "&origlat=" + str(origlat) + "&destlon=" + str(destlon) + "&destlat=" + str(destlat) + "&dep_time=" + str(dep_time) + "&arr_time=" + str(arr_time) + "&timezone=" + str(timezone) + "&transfer_penalty=" + str(transfer_penalty) + "&walking_speed=" + str(walking_speed) + "&walking_reluctance=" + str(walking_reluctance) + "&max_walk=" + str(max_walk) + "&walking_overage=" + str(walking_overage) + "&seqno=" + str(seqno) + "&street_mode=\"" + str(street_mode) + "\"&less_walking=\"" + str(less_walking) + "\"&udid=\"" + str(udid) + "\"&version=" + str(version) + "\"\n")
         
