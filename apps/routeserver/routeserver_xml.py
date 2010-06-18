@@ -401,7 +401,8 @@ class RouteServer:
             yield "--multipart-path_xml-boundary1234\n";
             
 			# loop to create multiple responses
-            for q in range(max_results): 
+            for q in range(max_results):
+                route_info.first_edge = True
                 route_info.last_edge = False
                 
                 # initialize return string
