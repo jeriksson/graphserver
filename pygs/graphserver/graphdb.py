@@ -24,7 +24,7 @@ class GraphDatabase:
         
     def setup(self):
         c = self.conn.cursor()
-        c.execute( "CREATE TABLE vertices (label TEXT UNIQUE ON CONFLICT IGNORE)" )
+        c.execute( "CREATE TABLE vertices (label TEXT UNIQUE ON CONFLICT IGNORE, lat FLOAT, lon FLOAT)" )
         c.execute( "CREATE TABLE edges (vertex1 TEXT, vertex2 TEXT, edgetype TEXT, edgestate TEXT)" )
         c.execute( "CREATE TABLE resources (name TEXT UNIQUE ON CONFLICT IGNORE, image TEXT)" )
     
@@ -38,7 +38,7 @@ class GraphDatabase:
         for i, vv in enumerate( graph.vertices ):
             if reporter and i%(n//100)==0: reporter.write( "%d/%d vertices dumped\n"%(i,n) )
             
-            c.execute( "INSERT INTO vertices VALUES (?)", (vv.label,) )
+            c.execute( "INSERT INTO vertices VALUES (?, ?, ?)", (vv.label, vv.lat, vv.lon) )
             for ee in vv.outgoing:
                 c.execute( "INSERT INTO edges VALUES (?, ?, ?, ?)", (ee.from_v.label, ee.to_v.label, cPickle.dumps( ee.payload.__class__ ), cPickle.dumps( ee.payload.__getstate__() ) ) )
                 
@@ -56,10 +56,10 @@ class GraphDatabase:
     def commit(self):
         self.conn.commit()
         
-    def add_vertex(self, vertex_label, outside_c=None):
+    def add_vertex(self, vertex_label, vertex_lat, vertex_lon, outside_c=None):
         c = outside_c or self.conn.cursor()
         
-        c.execute( "INSERT INTO vertices VALUES (?)", (vertex_label,) )
+        c.execute( "INSERT INTO vertices VALUES (?, ?, ?)", (vertex_label, vertex_lat, vertex_lon) )
         
         if outside_c is None:
             self.conn.commit()
@@ -98,6 +98,10 @@ class GraphDatabase:
     def all_vertex_labels(self):
         for vertex_label, in self.execute( "SELECT label FROM vertices" ):
             yield vertex_label
+    
+    def all_vertices(self):
+        for vertex_label, vertex_lat, vertex_lon in self.execute( "SELECT label, lat, lon FROM vertices" ):
+            yield vertex_label, vertex_lat, vertex_lon
     
     def all_edges(self):
         for vertex1, vertex2, edgetype, edgestate in self.execute( "SELECT vertex1, vertex2, edgetype, edgestate FROM edges" ):
@@ -158,11 +162,11 @@ class GraphDatabase:
         g = Graph()
         num_vertices = self.num_vertices()
         
-        for i, vertex_label in enumerate( self.all_vertex_labels() ):
+        for i, (vertex_label, vertex_lat, vertex_lon) in enumerate( self.all_vertices() ):
             if reporter and i%5000==0: 
                 reporter.write("\r%d/%d vertices"%(i,num_vertices) ) 
                 reporter.flush()
-            g.add_vertex( vertex_label )
+            g.add_vertex( vertex_label, vertex_lat, vertex_lon )
         
         if reporter: reporter.write("\rLoaded %d vertices %s\n" % (num_vertices, " "*10))
         

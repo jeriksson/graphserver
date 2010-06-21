@@ -33,10 +33,10 @@ gDestroy( Graph* this, int kill_vertex_payloads, int kill_edge_payloads ) {
 }
 
 Vertex*
-gAddVertex( Graph* this, char *label ) {
+gAddVertex( Graph* this, char *label, float lat, float lon ) {
   Vertex* exists = gGetVertex( this, label );
   if( !exists ) {
-    exists = vNew( label );
+    exists = vNew( label, lat, lon );
     hashtable_insert_string( this->vertices, label, exists );
   }
 
@@ -55,10 +55,10 @@ gRemoveVertex( Graph* this, char *label, int free_vertex_payload, int free_edge_
 }
 
 void 
-gAddVertices( Graph* this, char **labels, int n ) {
+gAddVertices( Graph* this, char **labels, float *lats, float *lons, int n ) {
   int i;
   for (i = 0; i < n; i++) {
-  	gAddVertex(this, labels[i]);
+  	gAddVertex(this, labels[i], lats[i], lons[i]);
   }
 }
 
@@ -282,13 +282,16 @@ gSetVertexEnabled( Graph *this, char *label, int enabled ) {
 // VERTEX FUNCTIONS
 
 Vertex *
-vNew( char* label ) {
+vNew( char* label, float lat, float lon ) {
     Vertex *this = (Vertex *)malloc(sizeof(Vertex)) ;
     this->degree_in = 0;
     this->degree_out = 0;
     this->outgoing = liNew( NULL ) ;
     this->incoming = liNew( NULL ) ;
     this->payload = NULL;
+    
+    this->lat = lat;
+    this->lon = lon;
 
     size_t labelsize = strlen(label)+1;
     this->label = (char*)malloc(labelsize*sizeof(char));
@@ -374,6 +377,16 @@ vRemoveInEdgeRef( Vertex* this, Edge* todie ) {
 char*
 vGetLabel( Vertex* this ) {
     return this->label;
+}
+
+float
+vGetLat( Vertex* this) {
+	return this->lat;
+}
+
+float
+vGetLon( Vertex* this) {
+	return this->lon;
 }
 
 int

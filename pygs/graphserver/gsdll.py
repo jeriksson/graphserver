@@ -113,7 +113,7 @@ def ccast(func, cls):
 # GRAPH API        
 pycapi(lgs.gNew, c_void_p)
 pycapi(lgs.gDestroy, c_void_p, [c_void_p,c_int,c_int])
-pycapi(lgs.gAddVertex, c_void_p, [c_void_p, c_char_p])
+pycapi(lgs.gAddVertex, c_void_p, [c_void_p, c_char_p, c_float, c_float])
 pycapi(lgs.gRemoveVertex, c_void_p, [c_void_p, c_char_p, c_int, c_int])
 pycapi(lgs.gGetVertex, c_void_p, [c_void_p, c_char_p])
 pycapi(lgs.gAddEdge, c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p])
@@ -123,7 +123,7 @@ pycapi(lgs.gShortestPathTreeRetro, c_void_p, [c_void_p, c_char_p, c_char_p, c_vo
 pycapi(lgs.gSize,c_void_p, [c_long])
 pycapi(lgs.sptPathRetro,c_void_p, [c_void_p, c_char_p, c_void_p])
 pycapi(lgs.gSetVertexEnabled,c_void_p, [c_void_p, c_char_p, c_int])
-pycapi(lgs.gAddVertices, c_void_p, [c_void_p, c_char_p, c_int])
+pycapi(lgs.gAddVertices, c_void_p, [c_void_p, c_char_p, c_void_p, c_void_p, c_int])
 pycapi(lgs.gSetThicknesses, c_void_p, [c_void_p, c_char_p])
 
 # SERVICE PERIOD API 
@@ -181,13 +181,15 @@ pycapi(lgs.stateSetTime, c_void_p, [c_void_p, c_long])
 pycapi(lgs.stateSetWeight, c_void_p, [c_void_p, c_long])
 
 # VERTEX API
-pycapi(lgs.vNew, c_void_p, [c_char_p])
+pycapi(lgs.vNew, c_void_p, [c_char_p, c_float, c_float])
 pycapi(lgs.vDestroy, c_void_p, [c_void_p,c_int,c_int])
 pycapi(lgs.vDegreeIn, c_int, [c_void_p])
 pycapi(lgs.vDegreeOut, c_int, [c_void_p])
 pycapi(lgs.vGetOutgoingEdgeList, c_void_p, [c_void_p])
 pycapi(lgs.vGetIncomingEdgeList, c_void_p, [c_void_p])
 pycapi(lgs.vGetLabel, c_char_p, [c_void_p])
+pycapi(lgs.vGetLat, c_float, [c_void_p])
+pycapi(lgs.vGetLon, c_float, [c_void_p])
 pycapi(lgs.vPayload, c_void_p, [c_void_p])
 
 # EDGE API

@@ -31,7 +31,7 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
     
   //Return Tree
   Graph* spt = gNew();
-  gAddVertex( spt, origin )->payload = init_state;
+  gAddVertex( spt, origin_v->label, origin_v->lat, origin_v->lon )->payload = init_state;
   //Priority Queue
   dirfibheap_t q = dirfibheap_new( gSize( this ) );
   dirfibheap_insert_or_dec_key( q, gGetVertex( this, origin ), 0 );
@@ -107,7 +107,7 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
 
         // If this is the first time v has been reached
         if( !spt_v ) {
-          spt_v = gAddVertex( spt, v->label );        //Copy v over to the SPT
+          spt_v = gAddVertex( spt, v->label, v->lat, v->lon );        //Copy v over to the SPT
           count++;
           }
 

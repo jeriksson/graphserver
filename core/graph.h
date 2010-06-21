@@ -37,6 +37,8 @@ struct Vertex {
    ListNode* outgoing;
    ListNode* incoming;
    char* label;
+   float lat;
+   float lon;
    State* payload;
 } ;
 
@@ -62,7 +64,7 @@ void
 gDestroy( Graph* this, int free_vertex_payloads, int free_edge_payloads );
 
 Vertex*
-gAddVertex( Graph* this, char *label );
+gAddVertex( Graph* this, char *label, float lat, float lon );
 
 void
 gRemoveVertex( Graph* this, char *label, int free_vertex_payload, int free_edge_payloads );
@@ -71,7 +73,7 @@ Vertex*
 gGetVertex( Graph* this, char *label );
 
 void
-gAddVertices( Graph* this, char **labels, int n );
+gAddVertices( Graph* this, char **labels, float *lats, float *lons, int n );
 
 Edge*
 gAddEdge( Graph* this, char *from, char *to, EdgePayload *payload );
@@ -102,7 +104,7 @@ gSetVertexEnabled( Graph *this, char *label, int enabled );
 //VERTEX FUNCTIONS
 
 Vertex *
-vNew( char* label ) ;
+vNew( char* label, float lat, float lon ) ;
 
 void
 vDestroy(Vertex* this, int free_vertex_payload, int free_edge_payloads) ;
@@ -130,6 +132,12 @@ vRemoveInEdgeRef( Vertex* this, Edge* todie );
 
 char*
 vGetLabel( Vertex* this );
+
+float
+vGetLat( Vertex* this );
+
+float
+vGetLon( Vertex* this );
 
 int
 vDegreeOut( Vertex* this );

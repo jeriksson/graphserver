@@ -7,6 +7,7 @@ from graphserver import util
 import time
 import unittest
 import pickle
+import random
 
 import os
 
@@ -68,9 +69,18 @@ class TestGraph(unittest.TestCase):
         
     def test_add_vertices(self):
         g = Graph()
-        verts = range(0,100000)
+        
+        verts = []
+        lats = []
+        lons = []
+        
+        for i in range(0,100000):
+            verts.append(i)
+            lats.append(random.uniform(41.028302192122915,42.948031407877082))
+            lons.append(random.uniform(-89.106976260401382,-86.866313839598618))
+        
         t0 = time.time()
-        g.add_vertices(verts)
+        g.add_vertices(verts, lats, lons)
         print "add vertices elapsed ", (time.time() - t0)
         vlist = g.vertices
         assert len(vlist) == len(verts)

@@ -19,8 +19,14 @@ def gdb_import_osm(gdb, osmdb, vertex_namespace, slogs):
         # insert end vertices of edge to graph
         vertex1_label = "%s-%s"%(vertex_namespace,node1)
         vertex2_label = "%s-%s"%(vertex_namespace,node2)
-        gdb.add_vertex( vertex1_label, cursor )
-        gdb.add_vertex( vertex2_label, cursor )
+        
+        # get latitude and longitude for nodes
+        node1_id, node1_tags, node1_lat, node1_lon, node1_endnode_refs = osmdb.node(node1)
+        node2_id, node2_tags, node2_lat, node2_lon, node2_endnode_refs = osmdb.node(node2)
+        
+        # add vertices to graph database
+        gdb.add_vertex( vertex1_label, node1_lat, node1_lon, cursor )
+        gdb.add_vertex( vertex2_label, node2_lat, node2_lon, cursor )
                 
         # create ID for the way's street
         street_name = tags.get("name")

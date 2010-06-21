@@ -67,11 +67,11 @@ class Graph(CShadow):
         self._cdel(self.soul, free_vertex_payloads, free_edge_payloads)
         self.soul = None
             
-    def add_vertex(self, label):
+    def add_vertex(self, label, lat, lon):
         #Vertex* gAddVertex( Graph* this, char *label );
         self.check_destroyed()
         
-        return self._cadd_vertex(self.soul, label)
+        return self._cadd_vertex(self.soul, label, lat, lon)
         
     def remove_vertex(self, label, free_vertex_payload, free_edge_payload):
         #void gRemoveVertex( Graph* this, char *label, int free_vertex_payload, int free_edge_payloads );
@@ -115,11 +115,21 @@ class Graph(CShadow):
             verts.append(v)
         return verts
     
-    def add_vertices(self, vs):
+    def add_vertices(self, vs, lts, lns):
         a = (c_char_p * len(vs))()
+        lats = (c_void_p * len(lts))()
+        lons = (c_void_p * len(lns))()
+        
         for i, v in enumerate(vs):
             a[i] = str(v)
-        lgs.gAddVertices(self.soul, a, len(vs))
+        
+        for i, lat in enumerate(lts):
+            lats[i] = lat
+        
+        for i, lon in enumerate(lns):
+            lons[i] = lon
+        
+        lgs.gAddVertices(self.soul, a, lats, lons, len(vs))
     
     @property
     def edges(self):
@@ -342,11 +352,13 @@ class WalkOptions(CShadow):
 class Vertex(CShadow):
     
     label = cproperty(lgs.vGetLabel, c_char_p)
+    lat = cproperty(lgs.vGetLat, c_float)
+    lon = cproperty(lgs.vGetLon, c_float)
     degree_in = cproperty(lgs.vDegreeIn, c_int)
     degree_out = cproperty(lgs.vDegreeOut, c_int)
     
-    def __init__(self,label):
-        self.soul = self._cnew(label)
+    def __init__(self, label, lat, lon):
+        self.soul = self._cnew(label, lat, lon)
         
     def destroy(self):
         #void vDestroy(Vertex* this, int free_vertex_payload, int free_edge_payloads) ;
