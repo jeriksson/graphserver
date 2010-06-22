@@ -52,10 +52,10 @@ gDestroy_NoHash( Graph* this) {
 }
 
 Vertex*
-gAddVertex( Graph* this, char *label ) {
+gAddVertex( Graph* this, char *label, float lat, float lon ) {
   Vertex* exists = gGetVertex( this, label );
   if( !exists ) {
-    exists = vNew( label, this->sequenceCounter, 0, NULL );
+    exists = vNew( label, lat, lon, this->sequenceCounter, 0, NULL );
     (this->sequenceCounter)++;
     hashtable_insert_string( this->vertices, label, exists );
   }
@@ -64,13 +64,10 @@ gAddVertex( Graph* this, char *label ) {
 }
 
 Vertex * gAddVertex_NoHash( Graph* this, Vertex * v) {
-  //Vertex* exists = gGetVertex( this, v->label );
   Vertex* exists = gGetVertex_NoHash( this, v );
-
   if( !exists ) {
-    exists = vNew( v->label, v->sequenceNumber, 1, this->sptVertexMemoryAllocator );
+    exists = vNew( v->label, v->lat, v->lon, v->sequenceNumber, 1, this->sptVertexMemoryAllocator );
     (this->sequenceCounter)++;
-    //hashtable_insert_string( this->vertices, v->label, exists );
   }
 
   return exists;
@@ -88,10 +85,10 @@ gRemoveVertex( Graph* this, char *label, int free_vertex_payload, int free_edge_
 }
 
 void 
-gAddVertices( Graph* this, char **labels, int n ) {
+gAddVertices( Graph* this, char **labels, float *lats, float *lons, int n ) {
   int i;
   for (i = 0; i < n; i++) {
-  	gAddVertex(this, labels[i]);
+  	gAddVertex(this, labels[i], lats[i], lons[i]);
   }
 }
 
@@ -329,7 +326,7 @@ gSetVertexEnabled( Graph *this, char *label, int enabled ) {
 // VERTEX FUNCTIONS
 
 Vertex *
-vNew( char* label, int seqNum, int useMemAllocator, simpleMemoryAllocator * sptVertexMemoryAllocator ) {
+vNew( char* label, float lat, float lon, int seqNum, int useMemAllocator, simpleMemoryAllocator * sptVertexMemoryAllocator ) {
     Vertex *this;
     if (useMemAllocator) {
 	this = memAllocateNewFromIndex(sptVertexMemoryAllocator, seqNum);
@@ -337,12 +334,15 @@ vNew( char* label, int seqNum, int useMemAllocator, simpleMemoryAllocator * sptV
     else {
     	this = (Vertex *)malloc(sizeof(Vertex)) ;
     }
+
     this->degree_in = 0;
     this->degree_out = 0;
     this->outgoing = liNew( NULL ) ;
     this->incoming = liNew( NULL ) ;
     this->payload = NULL;
     this->heapIndex = -1;
+    this->lat = lat;
+    this->lon = lon;
     size_t labelsize = strlen(label)+1;
     this->label = (char*)malloc(labelsize*sizeof(char));
     this->sequenceNumber = seqNum;
@@ -427,6 +427,16 @@ vRemoveInEdgeRef( Vertex* this, Edge* todie ) {
 char*
 vGetLabel( Vertex* this ) {
     return this->label;
+}
+
+float
+vGetLat( Vertex* this) {
+	return this->lat;
+}
+
+float
+vGetLon( Vertex* this) {
+	return this->lon;
 }
 
 int

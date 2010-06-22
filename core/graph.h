@@ -40,6 +40,8 @@ struct Vertex {
    ListNode* outgoing;
    ListNode* incoming;
    char* label;
+   float lat;
+   float lon;
    State* payload;
    int heapIndex;
    int sequenceNumber;
@@ -70,7 +72,7 @@ void
 gDestroy_NoHash( Graph* this );
 
 Vertex*
-gAddVertex( Graph* this, char *label );
+gAddVertex( Graph* this, char *label, float lat, float lon );
 
 Vertex*
 gAddVertex_NoHash( Graph* this, Vertex * v);
@@ -85,7 +87,7 @@ Vertex*
 gGetVertex_NoHash( Graph* this, Vertex * vert );
 
 void
-gAddVertices( Graph* this, char **labels, int n );
+gAddVertices( Graph* this, char **labels, float *lats, float *lons, int n );
 
 Edge*
 gAddEdge( Graph* this, char *from, char *to, EdgePayload *payload );
@@ -115,7 +117,7 @@ gSetVertexEnabled( Graph *this, char *label, int enabled );
 //VERTEX FUNCTIONS
 
 Vertex *
-vNew( char* label, int seqNum, int useMemAllocator, simpleMemoryAllocator * sptVertexMemoryAllocator );
+vNew( char* label, float lat, float lon, int seqNum, int useMemAllocator, simpleMemoryAllocator * sptVertexMemoryAllocator );
 
 void
 vDestroy(Vertex* this, int free_vertex_payload, int free_edge_payloads) ;
@@ -143,6 +145,12 @@ vRemoveInEdgeRef( Vertex* this, Edge* todie );
 
 char*
 vGetLabel( Vertex* this );
+
+float
+vGetLat( Vertex* this );
+
+float
+vGetLon( Vertex* this );
 
 int
 vDegreeOut( Vertex* this );

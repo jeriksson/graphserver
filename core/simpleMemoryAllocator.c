@@ -34,7 +34,6 @@ void * memRetrieveObjectByIndex(simpleMemoryAllocator * this, int index) {
 void * memAllocateNew(simpleMemoryAllocator * this) {
 	void * obj;
 	if (this->currentObjectsAllocated < this->sizeInObjects - 1) {
-		//printf("size of objects... %d, current pointer %p", (this->currentObjectsAllocated * this->sizeOfType), obj);
 		obj = this->objects + (this->currentObjectsAllocated * this->sizeOfType);
 		this->currentObjectsAllocated++;
 		return obj;
