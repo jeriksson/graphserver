@@ -12,10 +12,11 @@ OBJECTS= dirfibheap.o \
 	hashtable_gs.o \
 	hashtable_itr.o \
 	hashtable_utility.o \
+	simpleMemoryAllocator.o \
 	statetypes.o 
 
 # You know what? Honestly? I don't know what most of these switches do.
-CFLAGS=-g -fno-strict-aliasing -O2 -fPIC -Wall
+CFLAGS=-g -fno-strict-aliasing -fPIC -Wall
 LDFLAGS= -L. -Bsymbolic-functions -Wall -ldl -lm -lc
 
 OS := $(shell uname)
@@ -41,7 +42,7 @@ endif
 -include $(OBJECTS:.o=.d)
 
 libgraphserver.so: $(OBJECTS)
-	cc -shared -o $@ $(OBJECTS) $(LDFLAGS)
+	cc -g -shared -o $@ $(OBJECTS) $(LDFLAGS)
 
 install:
 	cp libgraphserver.so $(PREFIX)/lib

@@ -32,6 +32,7 @@ class GraphDatabase:
         c.close()
         
     def populate(self, graph, reporter=None):
+        print "populate?"
         c = self.conn.cursor()
         
         n = len(graph.vertices)

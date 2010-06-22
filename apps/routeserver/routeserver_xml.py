@@ -182,9 +182,9 @@ class RouteServer:
         # if there is no shortest path tree (i.e., there is no path between the origin and destination)
         if (spt is None):
             raise RoutingException
-                
+
         # get path based on departure time
-        dep_vertices, dep_edges = spt.path( dest )
+        dep_vertices, dep_edges = spt.path( self.graph.get_vertex_raw(dest) )
                 
         # if there are no edges or vertices (i.e., there is no path found)
         if ((dep_edges is None) or (dep_vertices is None)):
@@ -202,7 +202,7 @@ class RouteServer:
             raise RoutingException
                 
         # get path based on soonest arrival time
-        arr_vertices, arr_edges = arr_spt.path_retro( origin )
+        arr_vertices, arr_edges = arr_spt.path_retro( self.graph.get_vertex_raw(origin) )
                 
         # if route based on soonest arrival time departs in the past, return the original departure-time based route
         if (arr_vertices[0].payload.time < dep_time):

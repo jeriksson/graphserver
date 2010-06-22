@@ -66,7 +66,12 @@ class Graph(CShadow):
         
         self._cdel(self.soul, free_vertex_payloads, free_edge_payloads)
         self.soul = None
-            
+    
+    def destroy_no_hash(self):
+        self.check_destroyed() 
+        self.__cdel_nohash(self.soul)
+        self.soul = None
+
     def add_vertex(self, label):
         #Vertex* gAddVertex( Graph* this, char *label );
         self.check_destroyed()
@@ -83,6 +88,11 @@ class Graph(CShadow):
         self.check_destroyed()
         
         return self._cget_vertex(self.soul, label)
+
+    def get_vertex_raw(self, label):
+        #Vertex* gGetVertex( Graph* this, char *label );
+        self.check_destroyed()
+        return self._cget_vertex_raw(self.soul, label)
         
     def add_edge( self, fromv, tov, payload ):
         #Edge* gAddEdge( Graph* this, char *from, char *to, EdgePayload *payload );
@@ -182,8 +192,8 @@ class ShortestPathTree(Graph):
         return (path_vertices, path_edges)
         
     def path_retro(self,origin):
+        #TODO: FIX!
         self.check_destroyed()
-        
         t = now()
         vcnt = c_long(0)
         ptr = lgs.sptPathRetro(self.soul, origin, 
@@ -1295,8 +1305,10 @@ class VertexNotFoundError(Exception): pass
 
 Graph._cnew = lgs.gNew
 Graph._cdel = lgs.gDestroy
+Graph._cdel_nohash = lgs.gDestroy_NoHash
 Graph._cadd_vertex = ccast(lgs.gAddVertex, Vertex)
 Graph._cremove_vertex = lgs.gRemoveVertex
+Graph._cget_vertex_raw = lgs.gGetVertex
 Graph._cget_vertex = ccast(lgs.gGetVertex, Vertex)
 Graph._cadd_edge = ccast(lgs.gAddEdge, Edge)
 Graph._cshortest_path_tree = ccast(lgs.gShortestPathTree, ShortestPathTree)

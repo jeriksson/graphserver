@@ -6,6 +6,7 @@
 #include "hashtable_gs.h"
 #include "hashtable_itr.h"
 #include "edgetypes.h"
+#include "simpleMemoryAllocator.h"
 
 #ifndef INFINITY
   #define INFINITY 1000000000
@@ -18,6 +19,8 @@ typedef struct Graph Graph;
 
 struct Graph {
    struct hashtable* vertices;
+   simpleMemoryAllocator * sptVertexMemoryAllocator;
+   int sequenceCounter;
 };
 
 //for shortest path trees
@@ -38,6 +41,8 @@ struct Vertex {
    ListNode* incoming;
    char* label;
    State* payload;
+   int heapIndex;
+   int sequenceNumber;
 } ;
 
 struct Edge {
@@ -61,14 +66,23 @@ gNew();
 void
 gDestroy( Graph* this, int free_vertex_payloads, int free_edge_payloads );
 
+void
+gDestroy_NoHash( Graph* this );
+
 Vertex*
 gAddVertex( Graph* this, char *label );
+
+Vertex*
+gAddVertex_NoHash( Graph* this, Vertex * v);
 
 void
 gRemoveVertex( Graph* this, char *label, int free_vertex_payload, int free_edge_payloads );
 
 Vertex*
 gGetVertex( Graph* this, char *label );
+
+Vertex*
+gGetVertex_NoHash( Graph* this, Vertex * vert );
 
 void
 gAddVertices( Graph* this, char **labels, int n );
@@ -98,11 +112,10 @@ gSetThicknesses( Graph* this, char *root_label );
 void
 gSetVertexEnabled( Graph *this, char *label, int enabled );
 
-
 //VERTEX FUNCTIONS
 
 Vertex *
-vNew( char* label ) ;
+vNew( char* label, int seqNum, int useMemAllocator, simpleMemoryAllocator * sptVertexMemoryAllocator );
 
 void
 vDestroy(Vertex* this, int free_vertex_payload, int free_edge_payloads) ;

@@ -21,7 +21,8 @@ for _dlldir in _dlldirs:
     _dllpath = os.path.join(_dlldir, 'libgraphserver.so')
     if os.path.exists(_dllpath):
         print _dllpath
-        lgs = PyDLL( _dllpath )
+        print 'here'
+	lgs = PyDLL( _dllpath )
         break
 
 if not lgs:
@@ -113,6 +114,7 @@ def ccast(func, cls):
 # GRAPH API        
 pycapi(lgs.gNew, c_void_p)
 pycapi(lgs.gDestroy, c_void_p, [c_void_p,c_int,c_int])
+pycapi(lgs.gDestroy_NoHash, c_void_p, [c_void_p])
 pycapi(lgs.gAddVertex, c_void_p, [c_void_p, c_char_p])
 pycapi(lgs.gRemoveVertex, c_void_p, [c_void_p, c_char_p, c_int, c_int])
 pycapi(lgs.gGetVertex, c_void_p, [c_void_p, c_char_p])
@@ -121,7 +123,7 @@ pycapi(lgs.gVertices, c_void_p, [c_void_p, c_void_p])
 pycapi(lgs.gShortestPathTree, c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p, c_void_p, c_long])
 pycapi(lgs.gShortestPathTreeRetro, c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p, c_void_p, c_long])
 pycapi(lgs.gSize,c_void_p, [c_long])
-pycapi(lgs.sptPathRetro,c_void_p, [c_void_p, c_char_p, c_void_p])
+pycapi(lgs.sptPathRetro,c_void_p, [c_void_p, c_void_p, c_void_p])
 pycapi(lgs.gSetVertexEnabled,c_void_p, [c_void_p, c_char_p, c_int])
 pycapi(lgs.gAddVertices, c_void_p, [c_void_p, c_char_p, c_int])
 pycapi(lgs.gSetThicknesses, c_void_p, [c_void_p, c_char_p])

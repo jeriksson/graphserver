@@ -46,7 +46,7 @@ static void fibheap_cascading_cut (fibheap_t, fibnode_t);
 static fibnode_t fibheap_extr_min_node (fibheap_t);
 static int fibheap_compare (fibheap_t, fibnode_t, fibnode_t);
 static int fibheap_comp_data (fibheap_t, fibheapkey_t, void *, fibnode_t);
-static fibnode_t fibnode_new (void);
+static fibnode_t fibnode_new (fibheap_t heap);
 static void fibnode_insert_after (fibnode_t, fibnode_t);
 #define fibnode_insert_before(a, b) fibnode_insert_after (a->left, b)
 static fibnode_t fibnode_remove (fibnode_t);
@@ -56,18 +56,20 @@ static fibnode_t fibnode_remove (fibnode_t);
 fibheap_t
 fibheap_new (void)
 {
-  return (fibheap_t) calloc (1, sizeof (struct fibheap));
+  fibheap_t heap = (fibheap_t) calloc (1, sizeof (struct fibheap));
+  heap->nodeMemoryAllocator = memCreateNewAllocator(sizeof(struct fibnode), 5000000);
+  return heap;
 }
 
 /* Create a new fibonacci heap node.  */
 static fibnode_t
-fibnode_new (void)
+fibnode_new (fibheap_t heap)
 {
   fibnode_t node;
-
-  node = (fibnode_t) calloc (1, sizeof *node);
+  node = (fibnode_t) memAllocateNew(heap->nodeMemoryAllocator);
   node->left = node;
   node->right = node;
+  node->index = memGetCurrentIndex(heap->nodeMemoryAllocator);
 
   return node;
 }
@@ -100,7 +102,7 @@ fibheap_insert (fibheap_t heap, fibheapkey_t key, void *data)
   fibnode_t node;
 
   /* Create the new node.  */
-  node = fibnode_new ();
+  node = fibnode_new (heap);
 
   /* Set the node's data.  */
   node->data = data;
@@ -187,7 +189,7 @@ fibheap_extract_min (fibheap_t heap)
          node's data.  */
       z = fibheap_extr_min_node (heap);
       ret = z->data;
-      free (z);
+      //free (z);
     }
 
   return ret;
@@ -263,14 +265,19 @@ fibheap_delete_node (fibheap_t heap, fibnode_t node)
   return ret;
 }
 
+
+void fibheap_free_node_resources (void * node)
+{
+	if ( ((fibnode_t)node)->data )
+		((Vertex*)(((fibnode_t)node)->data))->heapIndex = -1;
+}
+
 /* Delete HEAP.  */
 void
 fibheap_delete (fibheap_t heap)
 {
-  while (heap->min != NULL)
-    free (fibheap_extr_min_node (heap));
-
-  free (heap);
+  memFreeObjectsAndResources(heap->nodeMemoryAllocator, fibheap_free_node_resources);
+  free(heap);
 }
 
 /* Determine if HEAP is empty.  */

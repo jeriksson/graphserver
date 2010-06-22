@@ -1,9 +1,15 @@
+#include <valgrind/callgrind.h>
+#include <unistd.h>
+
 Graph*
 #ifndef RETRO
 gShortestPathTree( Graph* this, char *from, char *to, State* init_state, WalkOptions* options, long maxtime ) {
 #else
 gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, WalkOptions* options, long mintime ) {
 #endif
+
+printf("starting instrumentation\n");
+CALLGRIND_START_INSTRUMENTATION
     
 /*
  *  VARIABLE SETUP
@@ -30,24 +36,27 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
   }
     
   //Return Tree
+  //sleep(6);
   Graph* spt = gNew();
-  gAddVertex( spt, origin )->payload = init_state;
+  gAddVertex_NoHash( spt, origin_v )->payload = init_state;
   //Priority Queue
-  dirfibheap_t q = dirfibheap_new( gSize( this ) );
+  dirfibheap_t q = dirfibheap_new(
+ );
   dirfibheap_insert_or_dec_key( q, gGetVertex( this, origin ), 0 );
 
 /*
  *  CENTRAL ITERATION
  *
  */
-
   while( !dirfibheap_empty( q ) ) {                  //Until the priority queue is empty:
     u = dirfibheap_extract_min( q );                 //get the lowest-weight Vertex 'u',
 
-    if( !strcmp( u->label, target ) )                //(end search if reached destination vertex)
-      break;
+    if( !strcmp( u->label, target ) ) {                //(end search if reached destination vertex)
+	printf("found it!!!!!\n");      
+	break;
+    }
 
-    spt_u = gGetVertex( spt, u->label );             //get corresponding SPT Vertex,
+    spt_u = gGetVertex_NoHash( spt, u );             //get corresponding SPT Vertex,
     
     du = (State*)spt_u->payload;                     //and get State of u 'du'.
     
@@ -55,6 +64,7 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
     if( du->time > maxtime )
       break;
 #else
+    //printf("2 ");
     if( du->time < mintime )
       break;
 #endif
@@ -62,6 +72,7 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
 #ifndef RETRO
     ListNode* edges = vGetOutgoingEdgeList( u );
 #else
+    //printf("3 ");
     ListNode* edges = vGetIncomingEdgeList( u );
 #endif
     while( edges ) {                                 //For each Edge 'edge' connecting u
@@ -69,14 +80,16 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
 #ifndef RETRO
       v = edge->to;                                  //to Vertex v:
 #else
+      //printf("4 ");
       v = edge->from;
 #endif
 
       long old_w;
-      if( (spt_v = gGetVertex( spt, v->label )) ) {        //get the SPT Vertex corresponding to 'v'
-        dv = (State*)spt_v->payload;                     //and its State 'dv'
-        old_w = dv->weight;
+      if( (spt_v = gGetVertex_NoHash( spt, v )) ) {        //get the SPT Vertex corresponding to 'v'
+        dv = (State*)spt_v->payload;                     //and its State 'dv'      
+	old_w = dv->weight;
       } else {
+        //printf("9 ");
         dv = NULL;                                       //which may not exist yet
         old_w = INFINITY;
       }
@@ -99,7 +112,7 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
         edges = edges->next;
         continue;
       }
-
+      //printf("6 ");
       long new_w = new_dv->weight;
       // If the new way of getting there is better,
       if( new_w < old_w ) {
@@ -107,7 +120,7 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
 
         // If this is the first time v has been reached
         if( !spt_v ) {
-          spt_v = gAddVertex( spt, v->label );        //Copy v over to the SPT
+          spt_v = gAddVertex_NoHash( spt, v );        //Copy v over to the SPT
           count++;
           }
 
@@ -126,7 +139,9 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
     }
   }
 
+  printf("ending\n");
   dirfibheap_delete( q );
+  CALLGRIND_STOP_INSTRUMENTATION
 
   //fprintf(stdout, "Final shortest path tree size: %d\n",count);
   return spt;

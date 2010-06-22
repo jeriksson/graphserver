@@ -41,6 +41,7 @@ Boston, MA 02110-1301, USA.  */
 #define _FIBHEAP_H_
 
 #include "stdio.h"
+#include "simpleMemoryAllocator.h"
 
 typedef long fibheapkey_t;
 //typedef double fibheapkey_t;
@@ -50,6 +51,7 @@ typedef struct fibheap
   size_t nodes;
   struct fibnode *min;
   struct fibnode *root;
+  simpleMemoryAllocator * nodeMemoryAllocator;
 } *fibheap_t;
 
 typedef struct fibnode
@@ -67,6 +69,7 @@ typedef struct fibnode
   unsigned int degree : 31;
   unsigned int mark : 1;
 #endif
+  int index;
 } *fibnode_t;
 
 extern fibheap_t fibheap_new (void);
@@ -83,5 +86,5 @@ extern void *fibheap_replace_data (fibheap_t, fibnode_t, void *);
 extern void *fibheap_delete_node (fibheap_t, fibnode_t);
 extern void fibheap_delete (fibheap_t);
 extern fibheap_t fibheap_union (fibheap_t, fibheap_t);
-
+extern void fibheap_free_node_resources (void * node);
 #endif /* _FIBHEAP_H_ */

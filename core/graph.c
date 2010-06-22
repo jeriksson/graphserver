@@ -1,5 +1,6 @@
 #include "graph.h"
 #include "dirfibheap.h"
+#include "simpleMemoryAllocator.h"
 
 //GRAPH FUNCTIONS
 
@@ -7,7 +8,7 @@ Graph*
 gNew() {
   Graph *this = (Graph*)malloc(sizeof(Graph));
   this->vertices = create_hashtable_string(16); //TODO: find a better number.
-
+  this->sptVertexMemoryAllocator = memCreateNewAllocator(sizeof(Vertex), 2000000);
   return this;
 }
 
@@ -29,6 +30,24 @@ gDestroy( Graph* this, int kill_vertex_payloads, int kill_edge_payloads ) {
   hashtable_destroy( this->vertices, 0 );
   //destroy the graph object itself
   free( this );
+}
+
+void gDestroyVertexAndPayload(void * vertex) {
+   //remove the sptIndex associated with this
+   Vertex * this = (Vertex*)vertex;
+   if (this && this->payload)
+      stateDestroy( this->payload );
+   free( this->outgoing );
+   free( this->incoming );
+   free( this->label );
+   free( this );
+}
+
+void
+gDestroy_NoHash( Graph* this) {
+  memFreeObjectsAndResources(this->sptVertexMemoryAllocator, gDestroyVertexAndPayload);
+  //destroy the graph object itself
+  free( this );
 
 }
 
@@ -36,8 +55,22 @@ Vertex*
 gAddVertex( Graph* this, char *label ) {
   Vertex* exists = gGetVertex( this, label );
   if( !exists ) {
-    exists = vNew( label );
+    exists = vNew( label, this->sequenceCounter, 0, NULL );
+    (this->sequenceCounter)++;
     hashtable_insert_string( this->vertices, label, exists );
+  }
+
+  return exists;
+}
+
+Vertex * gAddVertex_NoHash( Graph* this, Vertex * v) {
+  //Vertex* exists = gGetVertex( this, v->label );
+  Vertex* exists = gGetVertex_NoHash( this, v );
+
+  if( !exists ) {
+    exists = vNew( v->label, v->sequenceNumber, 1, this->sptVertexMemoryAllocator );
+    (this->sequenceCounter)++;
+    //hashtable_insert_string( this->vertices, v->label, exists );
   }
 
   return exists;
@@ -64,7 +97,17 @@ gAddVertices( Graph* this, char **labels, int n ) {
 
 Vertex*
 gGetVertex( Graph* this, char *label ) {
-  return hashtable_search( this->vertices, label );
+  Vertex * tmp = hashtable_search( this->vertices, label );
+  return tmp;
+}
+
+Vertex*
+gGetVertex_NoHash( Graph* this, Vertex * vert ) {
+  Vertex * returnVert = memRetrieveObjectByIndex( this->sptVertexMemoryAllocator, vert->sequenceNumber );
+  if (returnVert && returnVert->label)
+	return returnVert;
+  else
+	return NULL;
 }
 
 Edge*
@@ -136,6 +179,7 @@ gSetThicknesses( Graph* this, char *root_label ) {
 State*
 gShortestPath( Graph* this, char *from, char *to, State* init_state, int direction, long *size, WalkOptions* options, long timelimit ) {
   //make sure from/to vertices exist
+  
   if( !gGetVertex( this, from ) ) {
     fprintf( stderr, "Origin vertex \"%s\" does not exist\n", from );
     return NULL;
@@ -207,16 +251,18 @@ gShortestPath( Graph* this, char *from, char *to, State* init_state, int directi
   //destroy vertex payloads - we've transferred the relevant state information out
   //do not destroy the edge payloads - they belong to the creating graph
   //TODO: fix this so memory stops leaking:
-  //gDestroy( raw_tree, 1, 0 );
-
+  printf("destroying\n");
+  //gDestroy_NoHash( raw_tree );
+  printf("done destroying");
   //return
   *size = n;
   return ret;
 }
 
 void**
-sptPathRetro(Graph* g, char* origin_label, int* vertex_cnt) {
-	Vertex* curr = gGetVertex(g, origin_label);
+sptPathRetro(Graph* g, Vertex * origin, int* vertex_cnt) {
+        printf("in sptPathRetro");
+	Vertex* curr = gGetVertex_NoHash(g, origin);
 	ListNode* incoming = NULL;
 	Edge* edge = NULL;
 	
@@ -227,13 +273,14 @@ sptPathRetro(Graph* g, char* origin_label, int* vertex_cnt) {
 	int num_elements = 0;
 	if (curr == NULL) {
 		*vertex_cnt = 0;
-		//printf("No path\n");
+                //TODO:Remove
+		printf("No path!!\n");
 		return NULL;
 	}
 	vev_array = (void**)malloc(num_alloc * sizeof(Vertex*));
 	vev_array[num_elements] = (void*)curr;
 	num_elements++;
-	
+	printf("made it past!\n");
 	while ((incoming = vGetIncomingEdgeList(curr))) {
 		if (2*num_elements >= num_alloc-1) {
 			//printf("Realloc\n");
@@ -282,18 +329,24 @@ gSetVertexEnabled( Graph *this, char *label, int enabled ) {
 // VERTEX FUNCTIONS
 
 Vertex *
-vNew( char* label ) {
-    Vertex *this = (Vertex *)malloc(sizeof(Vertex)) ;
+vNew( char* label, int seqNum, int useMemAllocator, simpleMemoryAllocator * sptVertexMemoryAllocator ) {
+    Vertex *this;
+    if (useMemAllocator) {
+	this = memAllocateNewFromIndex(sptVertexMemoryAllocator, seqNum);
+    }
+    else {
+    	this = (Vertex *)malloc(sizeof(Vertex)) ;
+    }
     this->degree_in = 0;
     this->degree_out = 0;
     this->outgoing = liNew( NULL ) ;
     this->incoming = liNew( NULL ) ;
     this->payload = NULL;
-
+    this->heapIndex = -1;
     size_t labelsize = strlen(label)+1;
     this->label = (char*)malloc(labelsize*sizeof(char));
+    this->sequenceNumber = seqNum;
     strcpy(this->label, label);
-
     return this ;
 }
 
