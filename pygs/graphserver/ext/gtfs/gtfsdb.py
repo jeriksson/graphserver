@@ -259,6 +259,17 @@ class GTFSDatabase:
         c.close()
         return ret
         
+    def route_type_for_trip_id(self, trip_id):
+        c = self.conn.cursor()
+        c.execute( "SELECT route_id FROM trips WHERE trip_id = ?", (trip_id,) )
+        route_id = c.fetchone()[0]
+        
+        c.execute( "SELECT route_type FROM routes WHERE route_id = ?", (route_id,) )
+        route_type = c.fetchone()[0]
+        
+        c.close()
+        return route_type
+        
     def count_stops(self):
         c = self.conn.cursor()
         c.execute( "SELECT count(*) FROM stops" )
