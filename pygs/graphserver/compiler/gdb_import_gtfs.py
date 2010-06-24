@@ -131,8 +131,10 @@ def gdb_load_gtfsdb_to_boardalight(gdb, agency_namespace, gtfsdb, agency_id, cur
         service_id = list(gtfsdb.execute( "SELECT service_id FROM trips WHERE trip_id=?", (trip_id,) ))[0][0]
         service_id = service_id.encode('utf-8')
         
-        hb = HeadwayBoard( service_id, sc, tz, agency_id_int, trip_id.encode('utf-8'), start_time, end_time, headway_secs )
-        ha = HeadwayAlight( service_id, sc, tz, agency_id_int, trip_id.encode('utf-8'), start_time, end_time, headway_secs )
+        route_type = gtfsdb.route_type_for_trip_id(trip_id)
+        
+        hb = HeadwayBoard( service_id, sc, tz, agency_id_int, route_type, trip_id.encode('utf-8'), start_time, end_time, headway_secs )
+        ha = HeadwayAlight( service_id, sc, tz, agency_id_int, route_type, trip_id.encode('utf-8'), start_time, end_time, headway_secs )
         
         stoptimes = list(gtfsdb.execute( "SELECT * FROM stop_times WHERE trip_id=? ORDER BY stop_sequence", (trip_id,)) )
         

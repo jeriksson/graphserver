@@ -467,13 +467,15 @@ typedef struct HeadwayBoard {
     int end_time;
     int headway_secs;
     
+    int route_type;
+    
     ServiceCalendar* calendar;
     Timezone* timezone;
     int agency;
 } HeadwayBoard;
 
 HeadwayBoard*
-hbNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, char* trip_id, int start_time, int end_time, int headway_secs );
+hbNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, char* trip_id, int start_time, int end_time, int headway_secs );
 
 void
 hbDestroy(HeadwayBoard* this);
@@ -486,6 +488,9 @@ hbGetTimezone( HeadwayBoard* this );
 
 int
 hbGetAgency( HeadwayBoard* this );
+
+int
+hbGetRouteType( HeadwayBoard* this );
 
 ServiceId
 hbGetServiceId( HeadwayBoard* this );
@@ -521,13 +526,15 @@ typedef struct HeadwayAlight {
     int end_time;
     int headway_secs;
     
+    int route_type;
+    
     ServiceCalendar* calendar;
     Timezone* timezone;
     int agency;
 } HeadwayAlight;
 
 HeadwayAlight*
-haNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, char* trip_id, int start_time, int end_time, int headway_secs );
+haNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, char* trip_id, int start_time, int end_time, int headway_secs );
 
 void
 haDestroy(HeadwayAlight* this);
@@ -540,6 +547,9 @@ haGetTimezone( HeadwayAlight* this );
 
 int
 haGetAgency( HeadwayAlight* this );
+
+int
+haGetRouteType( HeadwayAlight* this );
 
 ServiceId
 haGetServiceId( HeadwayAlight* this );

@@ -801,7 +801,7 @@ tbWalkBack(EdgePayload* this, State* params, WalkOptions* options) {
 // HEADWAYBOARD FUNCTIONS
 
 HeadwayBoard*
-hbNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, char* trip_id, int start_time, int end_time, int headway_secs ) {
+hbNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, char* trip_id, int start_time, int end_time, int headway_secs ) {
   HeadwayBoard* ret = (HeadwayBoard*)malloc(sizeof(HeadwayBoard));
   ret->type = PL_HEADWAYBOARD;
 
@@ -816,6 +816,8 @@ hbNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int
   ret->timezone = timezone;
   ret->agency = agency;
   ret->service_id = service_id;
+    
+  ret->route_type = route_type;
     
   ret->walk = &hbWalk;
   ret->walkBack = &hbWalkBack;
@@ -842,6 +844,11 @@ hbGetTimezone( HeadwayBoard* this ) {
 int
 hbGetAgency( HeadwayBoard* this ) {
   return this->agency;
+}
+
+int
+hbGetRouteType( HeadwayBoard* this ) {
+  return this->route_type;
 }
 
 ServiceId
@@ -958,7 +965,7 @@ hbWalkBack(EdgePayload* superthis, State* params, WalkOptions* options) {
 // HEADWAYALIGHT FUNCTIONS
 
 HeadwayAlight*
-haNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, char* trip_id, int start_time, int end_time, int headway_secs ) {
+haNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, char* trip_id, int start_time, int end_time, int headway_secs ) {
   HeadwayAlight* ret = (HeadwayAlight*)malloc(sizeof(HeadwayAlight));
   ret->type = PL_HEADWAYALIGHT;
 
@@ -973,6 +980,8 @@ haNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int
   ret->timezone = timezone;
   ret->agency = agency;
   ret->service_id = service_id;
+    
+  ret->route_type = route_type;
     
   ret->walk = &haWalk;
   ret->walkBack = &haWalkBack;
@@ -999,6 +1008,11 @@ haGetTimezone( HeadwayAlight* this ) {
 int
 haGetAgency( HeadwayAlight* this ) {
   return this->agency;
+}
+
+int
+haGetRouteType( HeadwayAlight* this ) {
+  return this->route_type;
 }
 
 ServiceId
