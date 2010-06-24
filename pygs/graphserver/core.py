@@ -1230,7 +1230,7 @@ class Alight(EdgePayload):
     agency = cproperty( lgs.alGetAgency, c_int )
     int_service_id = cproperty( lgs.alGetServiceId, c_int )
     num_alightings = cproperty( lgs.alGetNumAlightings, c_int )
-    overage = cproperty( lgs.tbGetOverage, c_int )
+    overage = cproperty( lgs.alGetOverage, c_int )
     route_type = cproperty( lgs.alGetRouteType, c_int )
     
     def __init__(self, service_id, calendar, timezone, agency, route_type):
