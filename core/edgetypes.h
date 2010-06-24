@@ -372,11 +372,13 @@ typedef struct TripBoard {
     int agency;
     ServiceId service_id;
     
+    int route_type;
+    
     int overage; //number of seconds schedules past midnight of the last departure. If it's at 12:00:00, the overage is 0.
 } TripBoard;
 
 TripBoard*
-tbNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency );
+tbNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type );
 
 void
 tbDestroy(TripBoard* this);
@@ -413,6 +415,9 @@ tbGetNextBoardingIndex(TripBoard* this, int time);
 
 int
 tbGetOverage(TripBoard* this);
+
+int
+tbGetRouteType(TripBoard* this);
 
 inline State*
 tbWalk( EdgePayload* superthis, State* params, WalkOptions* options );
@@ -598,11 +603,13 @@ typedef struct Alight {
     int agency;
     ServiceId service_id;
     
+    int route_type;
+    
     int overage; //number of seconds schedules past midnight of the last departure. If it's at 12:00:00, the overage is 0.
 } Alight;
 
 Alight*
-alNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency );
+alNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type );
 
 void
 alDestroy(Alight* this);
@@ -639,6 +646,9 @@ alGetLastAlightingIndex(Alight* this, int time);
 
 int
 alGetOverage(Alight* this);
+
+int
+alGetRouteType(Alight* this);
 
 inline State*
 alWalk(EdgePayload* this, State* params, WalkOptions* options);

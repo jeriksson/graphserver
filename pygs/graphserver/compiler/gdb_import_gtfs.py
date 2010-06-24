@@ -32,6 +32,7 @@ def gdb_boardalight_load_bundle(gdb, agency_namespace, gtfsdb, bundle, service_i
         trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled = stop_time_bundle[0]
         
         board_stop_id, board_stop_name, board_stop_lat, board_stop_lon = gtfsdb.stop(stop_id)
+        route_type = gtfsdb.route_type_for_trip_id(trip_id)
         
         if arrival_time != departure_time:
             patternstop_vx_name = "psv-%s-%03d-%03d-depart"%(agency_namespace,bundle.pattern.pattern_id,i)
@@ -49,7 +50,7 @@ def gdb_boardalight_load_bundle(gdb, agency_namespace, gtfsdb, bundle, service_i
         
         gdb.add_vertex( patternstop_vx_name, board_stop_lat, board_stop_lon, cursor )
         
-        b = TripBoard(service_id, sc, tz, agency_id_int)
+        b = TripBoard(service_id, sc, tz, agency_id_int, route_type)
         for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled in stop_time_bundle:
             b.add_boarding( trip_id, departure_time )
             
@@ -61,6 +62,7 @@ def gdb_boardalight_load_bundle(gdb, agency_namespace, gtfsdb, bundle, service_i
         trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled = stop_time_bundle[0]
         
         alight_stop_id, alight_stop_name, alight_stop_lat, alight_stop_lon = gtfsdb.stop(stop_id)
+        route_type = gtfsdb.route_type_for_trip_id(trip_id)
         
         if arrival_time != departure_time:
             patternstop_vx_name = "psv-%s-%03d-%03d-arrive"%(agency_namespace,bundle.pattern.pattern_id,i+1)
@@ -69,7 +71,7 @@ def gdb_boardalight_load_bundle(gdb, agency_namespace, gtfsdb, bundle, service_i
         
         gdb.add_vertex( patternstop_vx_name, alight_stop_lat, alight_stop_lon, cursor )
         
-        al = Alight(service_id, sc, tz, agency_id_int)
+        al = Alight(service_id, sc, tz, agency_id_int, route_type)
         for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled in stop_time_bundle:
             al.add_alighting( trip_id.encode('ascii'), arrival_time )
             
