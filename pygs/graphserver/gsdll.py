@@ -350,6 +350,8 @@ pycapi(lgs.woSetUphillSlowness, c_void_p, [c_void_p, c_float])
 pycapi(lgs.woSetWalkingOverage, c_void_p, [c_void_p, c_float])
 pycapi(lgs.woSetWalkingReluctance, c_void_p, [c_void_p, c_float])
 pycapi(lgs.woSetWalkingSpeed, c_void_p, [c_void_p, c_float])
+pycapi(lgs.woGetTransitTypes, c_int, [c_void_p])
+pycapi(lgs.woSetTransitTypes, c_void_p, [c_void_p, c_int])
 
 # LIBC API
 pycapi(libc.free, c_void_p, [c_void_p])

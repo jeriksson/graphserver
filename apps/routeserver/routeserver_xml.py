@@ -381,6 +381,13 @@ class RouteServer:
             wo.max_walk=max_walk
             wo.walking_overage=walking_overage
             
+            if (transit_mode == "Both"):
+                wo.transit_types = int(14)
+            elif (transit_mode == "Bus"):
+                wo.transit_types = int(8)
+            elif (transit_mode == "Rail"):
+                wo.transit_types = int(6)
+            
             # check for less_walking flag
             if (less_walking == "True"):
                 wo.walking_reluctance *= 10.0

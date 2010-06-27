@@ -16,6 +16,7 @@ woNew() {
     ret->hill_reluctance = 1.5; //Factor by which an uphill stretch is penalized, in addition to whatever time is lost by simply gaining.
     ret->max_walk = 10000; //meters
     ret->walking_overage = 0.1;
+    ret->transit_types = 2147483647; // set all int bits to 1
     return ret;
 }
 
@@ -112,6 +113,16 @@ woGetTurnPenalty( WalkOptions* this ) {
 void
 woSetTurnPenalty( WalkOptions* this, int turn_penalty ) {
     this->turn_penalty = turn_penalty;
+}
+
+int
+woGetTransitTypes( WalkOptions* this ) {
+	return this->transit_types;
+}
+
+void
+woSetTransitTypes( WalkOptions* this, int transit_types ) {
+	this->transit_types = transit_types;
 }
 
 //STATE FUNCTIONS
@@ -246,7 +257,13 @@ State*
 epWalk( EdgePayload* this, State* params, WalkOptions* options ) {
   if( !this )
     return NULL;
-
+  
+  if (this->type == PL_TRIPBOARD || this->type == PL_ALIGHT || this->type == PL_HEADWAYBOARD || this->type == PL_HEADWAYALIGHT) {
+  	if ( (options->transit_types & (1 << ((TripBoard*)this)->route_type)) == 0 ) {
+  		return NULL;
+  	}
+  }
+  
   if( this->type == PL_EXTERNVALUE ) {
     return cpWalk( (CustomPayload*)this, params, options );
   }
@@ -259,7 +276,13 @@ State*
 epWalkBack( EdgePayload* this, State* params, WalkOptions* options ) {
   if(!this)
     return NULL;
-
+  
+  if (this->type == PL_TRIPBOARD || this->type == PL_ALIGHT || this->type == PL_HEADWAYBOARD || this->type == PL_HEADWAYALIGHT) {
+  	if ( (options->transit_types & (1 << ((Alight*)this)->route_type)) == 0 ) {
+  		return NULL;
+  	}
+  }
+  
   if( this->type == PL_EXTERNVALUE ){
     return cpWalkBack( (CustomPayload*)this, params, options );
   }
