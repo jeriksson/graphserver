@@ -9,6 +9,7 @@ gNew() {
   Graph *this = (Graph*)malloc(sizeof(Graph));
   this->vertices = create_hashtable_string(16); //TODO: find a better number.
   this->sptVertexMemoryAllocator = memCreateNewAllocator(sizeof(Vertex), 2000000);
+  this->sequenceCounter = 0;
   return this;
 }
 
