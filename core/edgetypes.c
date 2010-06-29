@@ -261,13 +261,7 @@ epWalk( EdgePayload* this, State* params, WalkOptions* options ) {
   if ( (this->type == PL_TRIPBOARD) && ((options->transit_types & (1 << ((TripBoard*)this)->route_type)) == 0) ) {
   	return NULL;
   }
-  else if ( (this->type == PL_ALIGHT) && ((options->transit_types & (1 << ((Alight*)this)->route_type)) == 0) ) {
-  	return NULL;
-  }
   else if ( (this->type == PL_HEADWAYBOARD) && ((options->transit_types & (1 << ((HeadwayBoard*)this)->route_type)) == 0) ) {
-  	return NULL;
-  }
-  else if ( (this->type == PL_HEADWAYALIGHT) && ((options->transit_types & (1 << ((HeadwayAlight*)this)->route_type)) == 0) ) {
   	return NULL;
   }
   
@@ -284,13 +278,7 @@ epWalkBack( EdgePayload* this, State* params, WalkOptions* options ) {
   if(!this)
     return NULL;
   
-  if ( (this->type == PL_TRIPBOARD) && ((options->transit_types & (1 << ((TripBoard*)this)->route_type)) == 0) ) {
-  	return NULL;
-  }
-  else if ( (this->type == PL_ALIGHT) && ((options->transit_types & (1 << ((Alight*)this)->route_type)) == 0) ) {
-  	return NULL;
-  }
-  else if ( (this->type == PL_HEADWAYBOARD) && ((options->transit_types & (1 << ((HeadwayBoard*)this)->route_type)) == 0) ) {
+  if ( (this->type == PL_ALIGHT) && ((options->transit_types & (1 << ((Alight*)this)->route_type)) == 0) ) {
   	return NULL;
   }
   else if ( (this->type == PL_HEADWAYALIGHT) && ((options->transit_types & (1 << ((HeadwayAlight*)this)->route_type)) == 0) ) {
