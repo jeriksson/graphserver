@@ -387,6 +387,8 @@ class RouteServer:
                 wo.transit_types = int(8)
             elif (transit_mode == "Rail"):
                 wo.transit_types = int(6)
+            elif (transit_mode == "None"):
+                wo.transit_types = int(0)
             
             # check for less_walking flag
             if (less_walking == "True"):
