@@ -425,6 +425,7 @@ class RouteServer:
                 
                 # if there are no edges or vertices (i.e., there is no path found)
                 if ((edges is None) or (vertices is None)): raise RoutingException
+                elif (spt is not None): spt.destroy()
                 
                 # create WalkPath object
                 walk_path = WalkPath()
@@ -475,11 +476,12 @@ class RouteServer:
                 else:
                     arr_time = route_info.actual_arr_time - time_to_dest - 60
                 
-                if (spt is not None):
-                    spt.destroy()
-                
         except RoutingException:
+            if (spt is not None):
+                spt.destroy()
+            
             yield '\n\n--multipart-path_xml-boundary1234\nContent-Type: text/xml\n\n<?xml version="1.0"?><routes></routes>--multipart-path_xml-boundary1234--\n\n '
+            
         finally:
 #            yield '\n\n--multipart-path_xml-boundary1234--\n\n'
             # destroy WalkOptions object
