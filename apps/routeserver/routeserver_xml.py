@@ -475,6 +475,9 @@ class RouteServer:
                 else:
                     arr_time = route_info.actual_arr_time - time_to_dest - 60
                 
+                if (spt is not None):
+                    spt.destroy()
+                
         except RoutingException:
             yield '\n\n--multipart-path_xml-boundary1234\nContent-Type: text/xml\n\n<?xml version="1.0"?><routes></routes>--multipart-path_xml-boundary1234--\n\n '
         finally:
