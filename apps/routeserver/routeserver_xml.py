@@ -411,6 +411,8 @@ class RouteServer:
             
 			# loop to create multiple responses
             for q in range(max_results):
+                if (spt is not None):
+                    spt.destroy_no_hash()
                 route_info.first_edge = True
                 route_info.last_edge = False
                 
@@ -472,7 +474,8 @@ class RouteServer:
                     dep_time = route_info.actual_dep_time + time_to_orig + 60
                 else:
                     arr_time = route_info.actual_arr_time - time_to_dest - 60
-                
+                            
+    
         except RoutingException:
             if (spt is not None):
                 spt.destroy_no_hash()

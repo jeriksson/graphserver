@@ -6,11 +6,7 @@ Graph*
 gShortestPathTree( Graph* this, char *from, char *to, State* init_state, WalkOptions* options, long maxtime ) {
 #else
 gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, WalkOptions* options, long mintime ) {
-#endif
-
-printf("starting instrumentation\n");
-CALLGRIND_START_INSTRUMENTATION
-    
+#endif    
 /*
  *  VARIABLE SETUP
  */
@@ -36,7 +32,6 @@ CALLGRIND_START_INSTRUMENTATION
   }
     
   //Return Tree
-  //sleep(6);
   Graph* spt = gNew();
   gAddVertex_NoHash( spt, origin_v )->payload = init_state;
   //Priority Queue
@@ -52,7 +47,6 @@ CALLGRIND_START_INSTRUMENTATION
     u = dirfibheap_extract_min( q );                 //get the lowest-weight Vertex 'u',
 
     if( !strcmp( u->label, target ) ) {                //(end search if reached destination vertex)
-	printf("found it!!!!!\n");      
 	break;
     }
 
@@ -64,7 +58,6 @@ CALLGRIND_START_INSTRUMENTATION
     if( du->time > maxtime )
       break;
 #else
-    //printf("2 ");
     if( du->time < mintime )
       break;
 #endif
@@ -72,7 +65,6 @@ CALLGRIND_START_INSTRUMENTATION
 #ifndef RETRO
     ListNode* edges = vGetOutgoingEdgeList( u );
 #else
-    //printf("3 ");
     ListNode* edges = vGetIncomingEdgeList( u );
 #endif
     while( edges ) {                                 //For each Edge 'edge' connecting u
@@ -80,7 +72,6 @@ CALLGRIND_START_INSTRUMENTATION
 #ifndef RETRO
       v = edge->to;                                  //to Vertex v:
 #else
-      //printf("4 ");
       v = edge->from;
 #endif
 
@@ -89,7 +80,6 @@ CALLGRIND_START_INSTRUMENTATION
         dv = (State*)spt_v->payload;                     //and its State 'dv'      
 	old_w = dv->weight;
       } else {
-        //printf("9 ");
         dv = NULL;                                       //which may not exist yet
         old_w = INFINITY;
       }
@@ -112,7 +102,6 @@ CALLGRIND_START_INSTRUMENTATION
         edges = edges->next;
         continue;
       }
-      //printf("6 ");
       long new_w = new_dv->weight;
       // If the new way of getting there is better,
       if( new_w < old_w ) {
@@ -139,10 +128,7 @@ CALLGRIND_START_INSTRUMENTATION
     }
   }
 
-  printf("ending\n");
   dirfibheap_delete( q );
-  CALLGRIND_STOP_INSTRUMENTATION
 
-  //fprintf(stdout, "Final shortest path tree size: %d\n",count);
   return spt;
 }
