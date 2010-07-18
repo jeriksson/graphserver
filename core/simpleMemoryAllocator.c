@@ -74,12 +74,14 @@ void memForEachObject(simpleMemoryAllocator * this, void (*f)(void *)) {
 }
 
 void memFreeObjectsAndResources(simpleMemoryAllocator * this, void (*f)(void *)) {
-	int i = 0; 
-	for (; i < this->currentObjectsAllocated; ++i)
-	{
-		(*f)(this->objects + (i * this->sizeOfType));
-	}
+        int i = 1;
+        for (; i < this->currentObjectsAllocated; ++i)
+        {
+                (*f)(this->objects + (i * this->sizeOfType));
+        }
+                
+        (*f)(this->objects);
         free(this->objects);
-	free(this);
+        free(this);
 }
 

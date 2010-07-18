@@ -68,8 +68,10 @@ class Graph(CShadow):
         self.soul = None
     
     def destroy_no_hash(self):
+        print type(self)
+        print "test"
         self.check_destroyed() 
-        self.__cdel_nohash(self.soul)
+        self._cdel_nohash(self.soul)
         self.soul = None
             
     def add_vertex(self, label, lat, lon):
@@ -231,6 +233,9 @@ class ShortestPathTree(Graph):
     def destroy(self):
         #destroy the vertex State instances, but not the edge EdgePayload instances, as they're owned by the parent graph
         super(ShortestPathTree, self).destroy(1, 0)
+
+    def destroy_no_hash(self):
+        super(ShortestPathTree, self).destroy_no_hash()
 
 class EdgePayload(CShadow, Walkable):
     def __init__(self):

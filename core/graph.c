@@ -34,14 +34,12 @@ gDestroy( Graph* this, int kill_vertex_payloads, int kill_edge_payloads ) {
 }
 
 void gDestroyVertexAndPayload(void * vertex) {
-   //remove the sptIndex associated with this
    Vertex * this = (Vertex*)vertex;
-   if (this && this->payload)
-      stateDestroy( this->payload );
-   free( this->outgoing );
-   free( this->incoming );
-   free( this->label );
-   free( this );
+   if (this && this->label){
+   	 free( this->outgoing );
+  	 free( this->incoming );
+  	 free( this->label );
+   }
 }
 
 void
@@ -249,9 +247,7 @@ gShortestPath( Graph* this, char *from, char *to, State* init_state, int directi
   //destroy vertex payloads - we've transferred the relevant state information out
   //do not destroy the edge payloads - they belong to the creating graph
   //TODO: fix this so memory stops leaking:
-  printf("destroying\n");
   //gDestroy_NoHash( raw_tree );
-  printf("done destroying");
   //return
   *size = n;
   return ret;
@@ -259,7 +255,6 @@ gShortestPath( Graph* this, char *from, char *to, State* init_state, int directi
 
 void**
 sptPathRetro(Graph* g, Vertex * origin, int* vertex_cnt) {
-        printf("in sptPathRetro");
 	Vertex* curr = gGetVertex_NoHash(g, origin);
 	ListNode* incoming = NULL;
 	Edge* edge = NULL;
@@ -272,19 +267,15 @@ sptPathRetro(Graph* g, Vertex * origin, int* vertex_cnt) {
 	if (curr == NULL) {
 		*vertex_cnt = 0;
                 //TODO:Remove
-		printf("No path!!\n");
 		return NULL;
 	}
 	vev_array = (void**)malloc(num_alloc * sizeof(Vertex*));
 	vev_array[num_elements] = (void*)curr;
 	num_elements++;
-	printf("made it past!\n");
 	while ((incoming = vGetIncomingEdgeList(curr))) {
 		if (2*num_elements >= num_alloc-1) {
-			//printf("Realloc\n");
 			vev_array = (void**)realloc(vev_array, ((num_alloc+50) * sizeof(void*)));
 			num_alloc += 50;
-			//printf("Realloc done\n");
 		}
 		edge = liGetData(incoming);
 		vev_array[2*num_elements-1] = (void*)edge;
@@ -293,7 +284,6 @@ sptPathRetro(Graph* g, Vertex * origin, int* vertex_cnt) {
 		num_elements++;
 	}
 	*vertex_cnt = num_elements;
-	//printf("Path has %d vertices\n", num_elements);
 	return vev_array;	
 }
 

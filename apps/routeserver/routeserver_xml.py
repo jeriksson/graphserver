@@ -177,7 +177,6 @@ class RouteServer:
         # generate shortest path tree based on departure time
         sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
         spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,dep_time), wo )
-        
         # if there is no shortest path tree (i.e., there is no path between the origin and destination)
         if (spt is None):
             raise RoutingException
@@ -209,7 +208,7 @@ class RouteServer:
             
             # destroy arrival-time based shortest path tree
             if (arr_spt is not None):
-                arr_spt.destroy()
+                arr_spt.destroy_no_hash()
             
             # set vertices and edges
             vertices = dep_vertices
@@ -218,7 +217,7 @@ class RouteServer:
         else:
             # destroy departure-time based shortest path tree
             if (spt is not None):
-                spt.destroy()
+                spt.destroy_no_hash()
             
             # point spt at arrival-time based shortest path tree for proper cleanup
             spt = arr_spt
@@ -265,7 +264,7 @@ class RouteServer:
             
             # destroy departure-time based shortest path tree
             if (dep_spt is not None): 
-                dep_spt.destroy()
+                dep_spt.destroy_no_hash()
             
             # set vertices and edges
             vertices = arr_vertices
@@ -273,7 +272,7 @@ class RouteServer:
             
         else:
             # destroy departure-time based shortest path tree
-            if (spt is not None): spt.destroy()
+            if (spt is not None): spt.destroy_no_hash()
             
             # point spt at departure-time based shortest path tree for proper cleanup
             spt = dep_spt
@@ -425,8 +424,6 @@ class RouteServer:
                 
                 # if there are no edges or vertices (i.e., there is no path found)
                 if ((edges is None) or (vertices is None)): raise RoutingException
-                elif (spt is not None): spt.destroy()
-                
                 # create WalkPath object
                 walk_path = WalkPath()
                 walk_path.lastlat = origlat
@@ -478,7 +475,7 @@ class RouteServer:
                 
         except RoutingException:
             if (spt is not None):
-                spt.destroy()
+                spt.destroy_no_hash()
             
             yield '\n\n--multipart-path_xml-boundary1234\nContent-Type: text/xml\n\n<?xml version="1.0"?><routes></routes>--multipart-path_xml-boundary1234--\n\n '
             
@@ -489,7 +486,7 @@ class RouteServer:
             
             # destroy shortest path tree
             if (spt is not None):
-                spt.destroy()
+                spt.destroy_no_hash()
         
     path_xml.mime = 'multipart/x-mixed-replace; boundary="--multipart-path_xml-boundary1234"'
 
