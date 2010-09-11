@@ -13,11 +13,13 @@ OBJECTS= dirfibheap.o \
 	hashtable_itr.o \
 	hashtable_utility.o \
 	simpleMemoryAllocator.o \
-	statetypes.o 
+	statetypes.o \
+	explorer.o
 
 # You know what? Honestly? I don't know what most of these switches do.
 CFLAGS=-g -fno-strict-aliasing -fPIC -Wall
 LDFLAGS= -L. -Bsymbolic-functions -Wall -ldl -lm -lc
+CAIROLIB=$(shell pkg-config --cflags --libs cairo)
 
 OS := $(shell uname)
 
@@ -32,8 +34,8 @@ endif
 # they include change
 # see: http://www.cs.berkeley.edu/~smcpeak/autodepend/autodepend.html
 %.o: %.c
-	cc $*.c -c -o $@ $(CFLAGS)
-	cc $*.c -MM $(CFLAGS) > $*.d
+	cc $*.c -c -o $@ $(CFLAGS) $(CAIROLIB)
+	cc $*.c -MM $(CFLAGS) $(CAIROLIB) > $*.d
 	@mv -f $*.d $*.d.tmp
 	@sed -e 's|.*:|$*.o:|' < $*.d.tmp > $*.d
 	@sed -e 's/.*://' -e 's/\\$$//' < $*.d.tmp | fmt -1 | \
@@ -42,7 +44,7 @@ endif
 -include $(OBJECTS:.o=.d)
 
 libgraphserver.so: $(OBJECTS)
-	cc -g -shared -o $@ $(OBJECTS) $(LDFLAGS)
+	cc -g -shared -o $@ $(OBJECTS) $(LDFLAGS) $(CAIROLIB)
 
 install:
 	cp libgraphserver.so $(PREFIX)/lib
@@ -57,6 +59,6 @@ install:
 	cp hashtable_utility.h $(PREFIX)/include/graphserver
 	cp hashtable_private.h $(PREFIX)/include/graphserver
 	cp statetypes.h $(PREFIX)/include/graphserver
-
+	cp explorer.h $(PREFIX)/include/graphserver
 clean:
 	rm -f *.o *.so *~ *.d

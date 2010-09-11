@@ -106,7 +106,7 @@ class RouteServer:
             
             #if not hasattr(self, 'pattern_cache'):
             #    self.pattern_cache = [(pth, args, pfunc) for pth, args, pfunc in self.patterns()]
-            self.pattern_cache = [(re.compile('/path_xml'),[],self.path_xml),(re.compile('/transit_path'),[],self.transit_path)]
+            self.pattern_cache = [(re.compile('/path_xml'),[],self.path_xml),(re.compile('/transit_path'),[],self.transit_path),(re.compile('/getUrbanExplorerBlob'),[],self.getUrbanExplorerBlob)]
             
             for ppath, pargs, pfunc in self.pattern_cache:
                 if ppath.match(path_info):
@@ -282,6 +282,70 @@ class RouteServer:
             edges = dep_edges
             
         return (spt, edges, vertices)
+
+    def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat,street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,dep_time=0):
+        
+        # get origin and destination nodes from osm map
+        sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
+        orig_osm, orig_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(origlon, origlat)
+        dest_osm, dest_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(destlon, destlat)
+            
+        # get origin and destination nodes from gtfs database
+        sys.stderr.write("[get_station_vertex_from_coords," + str(time.time()) + "]\n")
+        orig_sta, orig_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(origlon, origlat)
+        dest_sta, dest_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(destlon, destlat)
+                
+        # get coordinates for origin node
+        if (orig_osm_dist < orig_sta_dist):
+            origin = orig_osm
+            sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
+            orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(origin)
+        else:
+            origin = orig_sta
+            sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
+            orig_node_lat, orig_node_lon = self.pggtfsdb.get_coords_for_station_vertex(origin)
+                
+        # get coordinates for destination node
+        if (dest_osm_dist < dest_sta_dist):
+            dest = dest_osm
+            sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
+            dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
+        else:
+            dest = dest_sta
+            sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
+            dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(dest)
+    
+        wo = WalkOptions()
+        wo.transfer_penalty=transfer_penalty
+        wo.walking_speed=walking_speed
+        wo.walking_reluctance=walking_reluctance
+        wo.max_walk=max_walk
+        wo.walking_overage=walking_overage
+            
+        if (transit_mode == "Both"):
+            wo.transit_types = int(14)
+        elif (transit_mode == "Bus"):
+            wo.transit_types = int(8)
+        elif (transit_mode == "Rail"):
+            wo.transit_types = int(6)
+        elif (transit_mode == "None"):
+            wo.transit_types = int(0)
+            
+        # check for less_walking flag
+        if (less_walking == "True"):
+            wo.walking_reluctance *= 10.0
+            
+        # check for bike street_mode
+        if (street_mode == "bike"):
+            wo.transfer_penalty *= 10
+    
+        if (dep_time == 0):
+            dep_time = int(time.time())
+    
+        graphserver.core.makeImage(self.graph.soul, origin, dest, State(self.graph.num_agencies,dep_time), wo)
+        return open("explorerimages/blah.png", "rb").read()
+
+    getUrbanExplorerBlob.mime = 'image/png'
     
     def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0"):
         

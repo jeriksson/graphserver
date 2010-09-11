@@ -209,6 +209,9 @@ pycapi(lgs.epGetType, c_int, [c_void_p])
 pycapi(lgs.epWalk, c_void_p, [c_void_p, c_void_p, c_int])
 pycapi(lgs.epWalkBack, c_void_p, [c_void_p, c_void_p, c_int])
 
+# URBANEXPLORER API
+pycapi(lgs.drawSimpleImage, c_void_p, [c_void_p, c_char_p, c_char_p, c_void_p, c_void_p, c_long])
+
 # LINKNODE API
 pycapi(lgs.linkNew, c_void_p)
 pycapi(lgs.linkDestroy, c_void_p)

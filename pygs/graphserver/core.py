@@ -14,7 +14,11 @@ from util import TimeHelpers
 
 def indent( a, n ):
     return "\n".join( [" "*n+x for x in a.split("\n")] )
-        
+
+def makeImage(g, fromv, tov, initstate, walk_options=None, maxtime=2000000000):
+    print "testing\n"
+    lgs.drawSimpleImage(g, fromv, tov, initstate.soul, walk_options.soul, c_long(maxtime))
+    
 #TODO this is probably defined somewhere else, too
 def unparse_secs(secs):
     return "%02d:%02d:%02d"%(secs/3600, (secs%3600)/60, secs%60)
