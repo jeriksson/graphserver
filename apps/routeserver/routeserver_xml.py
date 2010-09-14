@@ -89,6 +89,7 @@ class RouteServer:
         self.event_dispatch = event_dispatch
         self.pgosmdb = pgosmdb_handle
         self.pggtfsdb = pggtfsdb_handle
+        self.two_way_routing = True
     
     def run_test_server(self, port=8080):
         print "starting RouteServer on port " + str(port)
@@ -177,6 +178,7 @@ class RouteServer:
         # generate shortest path tree based on departure time
         sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
         spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,dep_time), wo )
+        
         # if there is no shortest path tree (i.e., there is no path between the origin and destination)
         if (spt is None):
             raise RoutingException
@@ -188,44 +190,50 @@ class RouteServer:
         if ((dep_edges is None) or (dep_vertices is None)):
             raise RoutingException
         
-        # grab soonest arrival time
-        soonest_arr_time = dep_vertices[-1].payload.time
-        
-        # re-run query using soonest arrival time
-        sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
-        arr_spt = self.graph.shortest_path_tree_retro( origin, dest, State(self.graph.num_agencies,soonest_arr_time), wo )
-        
-        # if there is no shortest path tree (i.e., there is no path between the origin and destination)
-        if (arr_spt is None):
-            raise RoutingException
-        
-        # get path based on soonest arrival time
-        
-        arr_vertices, arr_edges = arr_spt.path_retro( self.graph.get_vertex_raw(origin) )
-        
-        # if route based on soonest arrival time departs in the past, return the original departure-time based route
-        if (arr_vertices[0].payload.time < dep_time):
+        if (self.two_way_routing):
             
-            # destroy arrival-time based shortest path tree
-            if (arr_spt is not None):
-                arr_spt.destroy_no_hash()
+            # grab soonest arrival time
+            soonest_arr_time = dep_vertices[-1].payload.time
             
+            # re-run query using soonest arrival time
+            sys.stderr.write("[shortest_path_tree_retro," + str(time.time()) + "]\n")
+            arr_spt = self.graph.shortest_path_tree_retro( origin, dest, State(self.graph.num_agencies,soonest_arr_time), wo )
+            
+            # if there is no shortest path tree (i.e., there is no path between the origin and destination)
+            if (arr_spt is None):
+                raise RoutingException
+            
+            # get path based on soonest arrival time
+            arr_vertices, arr_edges = arr_spt.path_retro( self.graph.get_vertex_raw(origin) )
+            
+            # if route based on soonest arrival time departs in the past, return the original departure-time based route
+            if (arr_vertices[0].payload.time < dep_time):
+                
+                # destroy arrival-time based shortest path tree
+                if (arr_spt is not None):
+                    arr_spt.destroy_no_hash()
+                
+                # set vertices and edges
+                vertices = dep_vertices
+                edges = dep_edges
+                
+            else:
+                # destroy departure-time based shortest path tree
+                if (spt is not None):
+                    spt.destroy_no_hash()
+                
+                # point spt at arrival-time based shortest path tree for proper cleanup
+                spt = arr_spt
+                
+                # set vertices and edges
+                vertices = arr_vertices
+                edges = arr_edges
+        
+        else:
             # set vertices and edges
             vertices = dep_vertices
             edges = dep_edges
-            
-        else:
-            # destroy departure-time based shortest path tree
-            if (spt is not None):
-                spt.destroy_no_hash()
-            
-            # point spt at arrival-time based shortest path tree for proper cleanup
-            spt = arr_spt
-            
-            # set vertices and edges
-            vertices = arr_vertices
-            edges = arr_edges
-            
+        
         return (spt, edges, vertices)
     
     def shortest_path_retro(self, origin, dest, arr_time, wo):
@@ -239,48 +247,55 @@ class RouteServer:
             raise RoutingException
         
         # get path based on arrival time
-        arr_vertices, arr_edges = spt.path_retro( origin )
+        arr_vertices, arr_edges = spt.path_retro( self.graph.get_vertex_raw(origin) )
         
         # if there are no edges or vertices (i.e., there is no path found)
         if ((arr_edges is None) or (arr_vertices is None)):
             raise RoutingException
         
-        # grab latest departure time
-        latest_dep_time = arr_vertices[0].payload.time
-        
-        # re-run query using latest departure time
-        sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
-        dep_spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,latest_dep_time), wo )
-        
-        # if there is no shortest path tree (i.e., there is no path between the origin and destination)
-        if (dep_spt is None):
-            raise RoutingException
-        
-        # get path based on latest departure time
-        dep_vertices, dep_edges = dep_spt.path( dest )
-        
-        # if route based on latest departure time arrives later than requested arrival time, return the original arrival-time based route
-        if (dep_vertices[-1].payload.time > arr_time):
+        if (self.two_way_routing):
             
-            # destroy departure-time based shortest path tree
-            if (dep_spt is not None): 
-                dep_spt.destroy_no_hash()
+            # grab latest departure time
+            latest_dep_time = arr_vertices[0].payload.time
             
+            # re-run query using latest departure time
+            sys.stderr.write("[shortest_path_tree," + str(time.time()) + "]\n")
+            dep_spt = self.graph.shortest_path_tree( origin, dest, State(self.graph.num_agencies,latest_dep_time), wo )
+            
+            # if there is no shortest path tree (i.e., there is no path between the origin and destination)
+            if (dep_spt is None):
+                raise RoutingException
+            
+            # get path based on latest departure time
+            dep_vertices, dep_edges = dep_spt.path( self.graph.get_vertex_raw(dest) )
+            
+            # if route based on latest departure time arrives later than requested arrival time, return the original arrival-time based route
+            if (dep_vertices[-1].payload.time > arr_time):
+                
+                # destroy departure-time based shortest path tree
+                if (dep_spt is not None): 
+                    dep_spt.destroy_no_hash()
+                
+                # set vertices and edges
+                vertices = arr_vertices
+                edges = arr_edges
+                
+            else:
+                # destroy departure-time based shortest path tree
+                if (spt is not None):
+                    spt.destroy_no_hash()
+                
+                # point spt at departure-time based shortest path tree for proper cleanup
+                spt = dep_spt
+                
+                # set vertices and edges
+                vertices = dep_vertices
+                edges = dep_edges
+        else:
             # set vertices and edges
             vertices = arr_vertices
             edges = arr_edges
-            
-        else:
-            # destroy departure-time based shortest path tree
-            if (spt is not None): spt.destroy_no_hash()
-            
-            # point spt at departure-time based shortest path tree for proper cleanup
-            spt = dep_spt
-            
-            # set vertices and edges
-            vertices = dep_vertices
-            edges = dep_edges
-            
+        
         return (spt, edges, vertices)
 
     def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat,street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,dep_time=0):
@@ -347,7 +362,10 @@ class RouteServer:
 
     getUrbanExplorerBlob.mime = 'image/png'
     
-    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0"):
+    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
+        
+        if (two_way_routing == "False"):
+            self.two_way_routing = False
         
         # set hard bounds on max_results [0,25]
         if (max_results < 0):
