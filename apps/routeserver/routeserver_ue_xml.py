@@ -226,7 +226,35 @@ class RouteServer(Servable):
         
         return (spt, edges, vertices)
     
-    def path_xml(self, locations, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
+    def find_path_xml(self, locations, new_location, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
+        
+        # storage for shortest trip
+        shortest_trip_route = None
+        shortest_trip_total_time = float('infinity')
+        
+        # try inserting the new location in each new location
+        for i in range(1, len(locations)):
+            
+            # add new location to locations list
+            locations.insert(i, new_location)
+            
+            # generate route with current location order
+            (curr_trip_total_time, curr_trip_route) = self.path_xml(locations, dep_time, arr_time, max_results, timezone, transfer_penalty, walking_speed, walking_reluctance, max_walk, walking_overage, seqno, street_mode, transit_mode, less_walking, udid, version, two_way_routing, 1)
+            
+            # if current trip has lower total time
+            if (curr_trip_total_time < shortest_trip_total_time):
+                shortest_trip_total_time = curr_trip_total_time
+                shortest_trip_route = curr_trip_route
+            
+            # remove new location from locations list
+            locations.remove(new_location)
+        
+        # return shortest trip route
+        return str(shortest_trip_route)
+    
+    find_path_xml.mime = 'text/xml'
+    
+    def path_xml(self, locations, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True", return_type=0):
         
         if (two_way_routing == "False"):
             self.two_way_routing = False
@@ -453,7 +481,10 @@ class RouteServer(Servable):
                     spt.destroy_no_hash()
         
         # return routes
-        return '<?xml version="1.0"?><routes total_time="' + str(total_time) + '">' + ret_string + '</routes>'
+        if (return_type == 0):
+            return '<?xml version="1.0"?><routes total_time="' + str(total_time) + '">' + ret_string + '</routes>'
+        else:
+            return (total_time, '<?xml version="1.0"?><routes total_time="' + str(total_time) + '">' + ret_string + '</routes>')
     
     path_xml.mime = 'text/xml'
 
