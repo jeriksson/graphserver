@@ -254,8 +254,6 @@ class RouteServer(Servable):
         # initialize return string
         ret_string = '<?xml version="1.0"?><routes>'
         
-        print "locations: " + str(locations)
-        
         # determine location ordering
         loc_ordering = range(len(locations) - 1)
         
