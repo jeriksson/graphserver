@@ -21,22 +21,6 @@ from math import fmod, sin, cos, atan2, pi, degrees
 from graphserver.ext.osm.vincenty import vincenty
 import json
 
-#from types import *
-#import re
-#import traceback
-#from urlparse import urlparse
-
-#try:
-#    from simplejson import loads as json_loads
-#except ImportError:
-#    from json import loads as json_loads
-
-#def xstr(arg):
-#    if arg is None:
-#        return ""
-#    else:
-#        return arg.encode('utf8')
-
 class ChicagoMap:
     bounding_lon_left=-89.106976260401382
     bounding_lat_bottom=41.028302192122915
@@ -241,72 +225,7 @@ class RouteServer(Servable):
             edges = arr_edges
         
         return (spt, edges, vertices)
-
-    def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat,street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,dep_time=0):
-        
-        # get origin and destination nodes from osm map
-        sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
-        orig_osm, orig_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(origlon, origlat)
-        dest_osm, dest_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(destlon, destlat)
-            
-        # get origin and destination nodes from gtfs database
-        sys.stderr.write("[get_station_vertex_from_coords," + str(time.time()) + "]\n")
-        orig_sta, orig_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(origlon, origlat)
-        dest_sta, dest_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(destlon, destlat)
-                
-        # get coordinates for origin node
-        if (orig_osm_dist < orig_sta_dist):
-            origin = orig_osm
-            sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
-            orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(origin)
-        else:
-            origin = orig_sta
-            sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
-            orig_node_lat, orig_node_lon = self.pggtfsdb.get_coords_for_station_vertex(origin)
-                
-        # get coordinates for destination node
-        if (dest_osm_dist < dest_sta_dist):
-            dest = dest_osm
-            sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
-            dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
-        else:
-            dest = dest_sta
-            sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
-            dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(dest)
     
-        wo = WalkOptions()
-        wo.transfer_penalty=transfer_penalty
-        wo.walking_speed=walking_speed
-        wo.walking_reluctance=walking_reluctance
-        wo.max_walk=max_walk
-        wo.walking_overage=walking_overage
-            
-        if (transit_mode == "Both"):
-            wo.transit_types = int(14)
-        elif (transit_mode == "Bus"):
-            wo.transit_types = int(8)
-        elif (transit_mode == "Rail"):
-            wo.transit_types = int(6)
-        elif (transit_mode == "None"):
-            wo.transit_types = int(0)
-            
-        # check for less_walking flag
-        if (less_walking == "True"):
-            wo.walking_reluctance *= 10.0
-            
-        # check for bike street_mode
-        if (street_mode == "bike"):
-            wo.transfer_penalty *= 10
-    
-        if (dep_time == 0):
-            dep_time = int(time.time())
-    
-        graphserver.core.makeImage(self.graph.soul, origin, dest, State(self.graph.num_agencies,dep_time), wo)
-        return open("explorerimages/blah.png", "rb").read()
-
-    getUrbanExplorerBlob.mime = 'image/png'
-    
-    #def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
     def path_xml(self, locations, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
         
         if (two_way_routing == "False"):
@@ -470,19 +389,6 @@ class RouteServer(Servable):
                 route_info.arr_time_diff = time_to_dest
                 route_info.street_mode = street_mode
                 
-                #yield "--multipart-path_xml-boundary1234\n";
-                
-    			# loop to create multiple responses
-                #for q in range(max_results):
-                
-                #if (spt is not None):
-                #    spt.destroy_no_hash()
-                #route_info.first_edge = True
-                #route_info.last_edge = False
-                
-                # initialize return string
-                #ret_string = 'Content-Type: text/xml\n\n<?xml version="1.0"?><routes>'
-                
                 if (arr_time == 0):
                     (spt, edges, vertices) = self.shortest_path(origin,dest,dep_time,wo)
                 else:
@@ -529,32 +435,12 @@ class RouteServer(Servable):
                     ri_actual_time = route_info.actual_arr_time
                 else:
                     ri_actual_time = route_info.actual_dep_time
-                
-                # close return string
-                #if q == max_results:                    
-                #    ret_string += '</routes>\n\n--multipart-path_xml-boundary1234--\n\n'
-                #else:
-                #    ret_string += '</routes>\n\n--multipart-path_xml-boundary1234\n'
-                #
-                #
-                #sys.stderr.write("[xml_path_exit_point," + str(time.time()) + "]\n")
-                #
-                # return routes xml
-                #yield xstr(str(ret_string))
-                #
-                #if arr_time == 0: 
-                #    dep_time = route_info.actual_dep_time + time_to_orig + 60
-                #else:
-                #    arr_time = route_info.actual_arr_time - time_to_dest - 60
             
             except RoutingException:
                 if (spt is not None):
                     spt.destroy_no_hash()
                 
-                #yield '\n\n--multipart-path_xml-boundary1234\nContent-Type: text/xml\n\n<?xml version="1.0"?><routes></routes>--multipart-path_xml-boundary1234--\n\n '
-                
             finally:
-                #yield '\n\n--multipart-path_xml-boundary1234--\n\n'
                 # destroy WalkOptions object
                 wo.destroy()
                 
@@ -569,7 +455,6 @@ class RouteServer(Servable):
         return ret_string
     
     path_xml.mime = 'text/xml'
-    #path_xml.mime = 'multipart/x-mixed-replace; boundary="--multipart-path_xml-boundary1234"'
 
 
 import sys
