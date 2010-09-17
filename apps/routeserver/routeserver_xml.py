@@ -283,7 +283,7 @@ class RouteServer:
             
         return (spt, edges, vertices)
 
-    def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat,street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,dep_time=0):
+    def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat, arrive_time, street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,start_time=0,switch=1):
         
         # get origin and destination nodes from osm map
         sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
@@ -321,7 +321,8 @@ class RouteServer:
         wo.walking_reluctance=walking_reluctance
         wo.max_walk=max_walk
         wo.walking_overage=walking_overage
-            
+          
+           
         if (transit_mode == "Both"):
             wo.transit_types = int(14)
         elif (transit_mode == "Bus"):
@@ -339,11 +340,15 @@ class RouteServer:
         if (street_mode == "bike"):
             wo.transfer_penalty *= 10
     
-        if (dep_time == 0):
-            dep_time = int(time.time())
+        if (start_time == 0):
+            start_time = int(time.time())
     
-        graphserver.core.makeImage(self.graph.soul, origin, dest, State(self.graph.num_agencies,dep_time), wo)
-        return open("explorerimages/blah.png", "rb").read()
+        if (switch == 1):
+            graphserver.core.makeImage(self.graph.soul, origin, dest, State(self.graph.num_agencies,start_time), State(self.graph.num_agencies,arrive_time), wo)
+            return open("explorerimages/blah.png", "rb").read()
+        else:
+            graphserver.core.makeUrbanExplorerBlob(self.graph.soul, origin, dest, State(self.graph.num_agencies,start_time), State(self.graph.num_agencies,arrive_time), wo)
+            return open("explorerimages/blah2.png", "rb").read()
 
     getUrbanExplorerBlob.mime = 'image/png'
     
