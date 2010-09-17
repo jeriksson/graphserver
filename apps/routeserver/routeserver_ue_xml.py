@@ -307,8 +307,10 @@ class RouteServer(Servable):
             
             origlat = locations[i][0]
             origlon = locations[i][1]
+            orig_duration = locations[i][2]
             destlat = locations[i+1][0]
             destlon = locations[i+1][1]
+            dest_duration = locations[i+1][2]
             
             try:
                 # if the departure time is not specified, set it
@@ -464,9 +466,9 @@ class RouteServer(Servable):
                 
                 # grab actual time
                 if (arr_time == 0):
-                    ri_actual_time = route_info.actual_arr_time
+                    ri_actual_time = (route_info.actual_arr_time + dest_duration)
                 else:
-                    ri_actual_time = route_info.actual_dep_time
+                    ri_actual_time = (route_info.actual_dep_time - orig_duration)
             
             except RoutingException:
                 if (spt is not None):
