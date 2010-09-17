@@ -5,7 +5,7 @@
 # Last modified: 4/20/10
 #
 
-from routeserver_servable import Servable
+from servable import Servable
 from SocketServer import ForkingMixIn
 from wsgiref.simple_server import WSGIServer, make_server
 from graphserver.graphdb import GraphDatabase
@@ -20,22 +20,6 @@ from graphserver.ext.gtfs.pggtfsdb import PostgresGIS_GTFSDB
 from math import fmod, sin, cos, atan2, pi, degrees
 from graphserver.ext.osm.vincenty import vincenty
 import json
-
-from types import *
-import re
-import traceback
-from urlparse import urlparse
-
-try:
-    from simplejson import loads as json_loads
-except ImportError:
-    from json import loads as json_loads
-
-def xstr(arg):
-    if arg is None:
-        return ""
-    else:
-        return arg.encode('utf8')
 
 class ChicagoMap:
     bounding_lon_left=-89.106976260401382
@@ -78,7 +62,7 @@ class MyWSGIServer(ForkingMixIn, WSGIServer):
 class RoutingException (Exception):
     pass
 
-class RouteServer:
+class RouteServer(Servable):
     DEFAULT_MIME = "text/plain"        
 
     def __init__(self, graphdb_filename, pgosmdb_handle, pggtfsdb_handle, event_dispatch):
@@ -96,62 +80,6 @@ class RouteServer:
         httpd = make_server('', port, self.wsgi_app(), MyWSGIServer)
         httpd.serve_forever()
     run_test_server.serve = False
-    
-    def wsgi_app(self):
-        """returns a wsgi app which exposes this object as a webservice"""
-        
-        def myapp(environ, start_response):
-            
-            path_info = environ['PATH_INFO']
-            query_string = environ['QUERY_STRING']
-            
-            #if not hasattr(self, 'pattern_cache'):
-            #    self.pattern_cache = [(pth, args, pfunc) for pth, args, pfunc in self.patterns()]
-            self.pattern_cache = [(re.compile('/path_xml'),[],self.path_xml),(re.compile('/transit_path'),[],self.transit_path),(re.compile('/getUrbanExplorerBlob'),[],self.getUrbanExplorerBlob)]
-            
-            for ppath, pargs, pfunc in self.pattern_cache:
-                if ppath.match(path_info):
-                    
-                    args = cgi.parse_qs(query_string)
-                    args = dict( [(k,v[0]) for k,v in args.iteritems()] )
-                    
-                    try:
-                        #use simplejson to coerce args to native types
-                        #don't attempt to convert an arg 'jsoncallback'; just ignore it.
-                        arglist = []
-                        for k,v in args.iteritems():
-                            if k=="jsoncallback":
-                                arglist.append( (k,v) )
-                            elif k != "_":
-                                arglist.append( (k,json_loads(v)) )
-                        args = dict( arglist )
-                        
-                        if hasattr(pfunc, 'mime'):
-                            mime = pfunc.mime
-                        else:
-                            mime = self.DEFAULT_MIME
-                        
-                        start_response('200 OK', [('Content-type', mime)])
-                        #try:
-#                        for value in pfunc(**args):
-#                            rr = xstr( value )
-                        #except TypeError:
-                        #    problem = "Arguments different than %s"%str(pargs)
-                        #    start_response('500 Internal Error', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
-                        #    return [problem]
-                        
-                        return pfunc(**args)
-                    except:
-                        problem = traceback.format_exc()
-                        start_response('500 Internal Error', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
-                        return [problem]
-                        
-            # no match:
-            problem = "No method corresponds to path '%s'"%environ['PATH_INFO']
-            start_response('404 Not Found', [('Content-type', 'text/plain'),('Content-Length', str(len(problem)))])
-            return [problem]
-            
-        return myapp
     
     def transit_path(self, trip_id, board_stop_id, alight_stop_id, origlon=0, origlat=0, destlon=0, destlat=0):
         
@@ -297,77 +225,36 @@ class RouteServer:
             edges = arr_edges
         
         return (spt, edges, vertices)
-
-    def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat, arrive_time, street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,start_time=0,switch=1):
+    
+    def find_path_xml(self, locations, new_location, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
         
-        # get origin and destination nodes from osm map
-        sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
-        orig_osm, orig_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(origlon, origlat)
-        dest_osm, dest_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(destlon, destlat)
+        # storage for shortest trip
+        shortest_trip_route = None
+        shortest_trip_total_time = float('infinity')
+        
+        # try inserting the new location in each new location
+        for i in range(1, len(locations)):
             
-        # get origin and destination nodes from gtfs database
-        sys.stderr.write("[get_station_vertex_from_coords," + str(time.time()) + "]\n")
-        orig_sta, orig_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(origlon, origlat)
-        dest_sta, dest_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(destlon, destlat)
-                
-        # get coordinates for origin node
-        if (orig_osm_dist < orig_sta_dist):
-            origin = orig_osm
-            sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
-            orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(origin)
-        else:
-            origin = orig_sta
-            sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
-            orig_node_lat, orig_node_lon = self.pggtfsdb.get_coords_for_station_vertex(origin)
-                
-        # get coordinates for destination node
-        if (dest_osm_dist < dest_sta_dist):
-            dest = dest_osm
-            sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
-            dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
-        else:
-            dest = dest_sta
-            sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
-            dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(dest)
-    
-        wo = WalkOptions()
-        wo.transfer_penalty=transfer_penalty
-        wo.walking_speed=walking_speed
-        wo.walking_reluctance=walking_reluctance
-        wo.max_walk=max_walk
-        wo.walking_overage=walking_overage
-          
-           
-        if (transit_mode == "Both"):
-            wo.transit_types = int(14)
-        elif (transit_mode == "Bus"):
-            wo.transit_types = int(8)
-        elif (transit_mode == "Rail"):
-            wo.transit_types = int(6)
-        elif (transit_mode == "None"):
-            wo.transit_types = int(0)
+            # add new location to locations list
+            locations.insert(i, new_location)
             
-        # check for less_walking flag
-        if (less_walking == "True"):
-            wo.walking_reluctance *= 10.0
+            # generate route with current location order
+            (curr_trip_total_time, curr_trip_route) = self.path_xml(locations, dep_time, arr_time, max_results, timezone, transfer_penalty, walking_speed, walking_reluctance, max_walk, walking_overage, seqno, street_mode, transit_mode, less_walking, udid, version, two_way_routing, 1)
             
-        # check for bike street_mode
-        if (street_mode == "bike"):
-            wo.transfer_penalty *= 10
+            # if current trip has lower total time
+            if (curr_trip_total_time < shortest_trip_total_time):
+                shortest_trip_total_time = curr_trip_total_time
+                shortest_trip_route = curr_trip_route
+            
+            # remove new location from locations list
+            locations.remove(new_location)
+        
+        # return shortest trip route
+        return str(shortest_trip_route)
     
-        if (start_time == 0):
-            start_time = int(time.time())
+    find_path_xml.mime = 'text/xml'
     
-        if (switch == 1):
-            graphserver.core.makeImage(self.graph.soul, origin, dest, State(self.graph.num_agencies,start_time), State(self.graph.num_agencies,arrive_time), wo)
-            return open("explorerimages/blah.png", "rb").read()
-        else:
-            graphserver.core.makeUrbanExplorerBlob(self.graph.soul, origin, dest, State(self.graph.num_agencies,start_time), State(self.graph.num_agencies,arrive_time), wo)
-            return open("explorerimages/blah2.png", "rb").read()
-
-    getUrbanExplorerBlob.mime = 'image/png'
-    
-    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
+    def path_xml(self, locations, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True", return_type=0):
         
         if (two_way_routing == "False"):
             self.two_way_routing = False
@@ -378,139 +265,158 @@ class RouteServer:
         elif (max_results > 25):
             max_results = 25
         
-        sys.stderr.write("[xml_path_entry_point," + str(time.time()) + "] \"origlon=" + str(origlon) + "&origlat=" + str(origlat) + "&destlon=" + str(destlon) + "&destlat=" + str(destlat) + "&dep_time=" + str(dep_time) + "&arr_time=" + str(arr_time) + "&timezone=" + str(timezone) + "&transfer_penalty=" + str(transfer_penalty) + "&walking_speed=" + str(walking_speed) + "&walking_reluctance=" + str(walking_reluctance) + "&max_walk=" + str(max_walk) + "&walking_overage=" + str(walking_overage) + "&seqno=" + str(seqno) + "&street_mode=\"" + str(street_mode) + "\"&less_walking=\"" + str(less_walking) + "\"&udid=\"" + str(udid) + "\"&version=" + str(version) + "\"\n")
+        #sys.stderr.write("[xml_path_entry_point," + str(time.time()) + "] \"origlon=" + str(origlon) + "&origlat=" + str(origlat) + "&destlon=" + str(destlon) + "&destlat=" + str(destlat) + "&dep_time=" + str(dep_time) + "&arr_time=" + str(arr_time) + "&timezone=" + str(timezone) + "&transfer_penalty=" + str(transfer_penalty) + "&walking_speed=" + str(walking_speed) + "&walking_reluctance=" + str(walking_reluctance) + "&max_walk=" + str(max_walk) + "&walking_overage=" + str(walking_overage) + "&seqno=" + str(seqno) + "&street_mode=\"" + str(street_mode) + "\"&less_walking=\"" + str(less_walking) + "\"&udid=\"" + str(udid) + "\"&version=" + str(version) + "\"\n")
         
-        if (origlon <= ChicagoMap.bounding_lon_left or origlon >= ChicagoMap.bounding_lon_right or 
-            origlat <= ChicagoMap.bounding_lat_bottom or origlat >= ChicagoMap.bounding_lat_top or 
-            destlon <= ChicagoMap.bounding_lon_left or destlon >= ChicagoMap.bounding_lon_right or 
-            destlat <= ChicagoMap.bounding_lat_bottom or destlat >= ChicagoMap.bounding_lat_top):
-            
-            sys.stderr.write("[exit_outside_bounding_box," + str(time.time()) + "]\n")
-            raise RoutingException
-            #return '<?xml version="1.0"?><routes></routes>'
+        #if (origlon <= ChicagoMap.bounding_lon_left or origlon >= ChicagoMap.bounding_lon_right or 
+        #    origlat <= ChicagoMap.bounding_lat_bottom or origlat >= ChicagoMap.bounding_lat_top or 
+        #    destlon <= ChicagoMap.bounding_lon_left or destlon >= ChicagoMap.bounding_lon_right or 
+        #    destlat <= ChicagoMap.bounding_lat_bottom or destlat >= ChicagoMap.bounding_lat_top):
+        #    
+        #    sys.stderr.write("[exit_outside_bounding_box," + str(time.time()) + "]\n")
+        #    raise RoutingException
+        #    #return '<?xml version="1.0"?><routes></routes>'
         
         # initialize spt to 'None' object
         spt = None
         
-        try:
-            # if the departure time is not specified, set it
-            if (dep_time == 0):
-                dep_time = int(time.time())
+        # initialize return string
+        ret_string = ''
+        
+        # initialize total time
+        total_time = 0
+        
+        # determine location ordering
+        loc_ordering = range(len(locations) - 1)
+        
+        # initialize time parameter
+        ri_actual_time = 0
+        
+        # if departure time query
+        if (arr_time == 0):
+            ri_actual_time = dep_time
+        else:
+            ri_actual_time = arr_time
+            loc_ordering.reverse()
+        
+        for i in loc_ordering:
             
-            # if the timezone is not specified, default to "America/Chicago"
-            if (timezone == ""):
-                timezone = "America/Chicago"
-            
-            # get origin and destination nodes from osm map
-            sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
-            orig_osm, orig_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(origlon, origlat)
-            dest_osm, dest_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(destlon, destlat)
-            
-            #print "\nOrigin OSM: " + str(orig_osm) + " (" + str(orig_osm_dist) + ")"
-            #print "Destination OSM: " + str(dest_osm) + " (" + str(dest_osm_dist) + ")\n"
-            
-            # get origin and destination nodes from gtfs database
-            sys.stderr.write("[get_station_vertex_from_coords," + str(time.time()) + "]\n")
-            orig_sta, orig_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(origlon, origlat)
-            dest_sta, dest_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(destlon, destlat)
-            
-            #print "Origin STA: " + str(orig_sta) + " (" + str(orig_sta_dist) + ")"
-            #print "Destination STA: " + str(dest_sta) + " (" + str(dest_sta_dist) + ")\n"
-            
-            # get coordinates for origin node
-            if (orig_osm_dist < orig_sta_dist):
-                origin = orig_osm
-                sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
-                orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(origin)
+            if (arr_time == 0):
+                dep_time = ri_actual_time
             else:
-                origin = orig_sta
-                sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
-                orig_node_lat, orig_node_lon = self.pggtfsdb.get_coords_for_station_vertex(origin)
+                arr_time = ri_actual_time
+            
+            origlat = locations[i][0]
+            origlon = locations[i][1]
+            destlat = locations[i+1][0]
+            destlon = locations[i+1][1]
+            
+            try:
+                # if the departure time is not specified, set it
+                #if (dep_time == 0):
+                #    dep_time = int(time.time())
                 
-            # get coordinates for destination node
-            if (dest_osm_dist < dest_sta_dist):
-                dest = dest_osm
-                sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
-                dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
-            else:
-                dest = dest_sta
-                sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
-                dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(dest)
-            
-            #print "Origin: " + str(origin)
-            #print "Destination: " + str(dest) + "\n"
-            
-            #print "Origin coords: " + str(orig_node_lat) + ", " + str(orig_node_lon)
-            #print "Destination coords: " + str(dest_node_lat) + ", " + str(dest_node_lon)
-            
-            # determine distance from actual origin/destination to osm nodes
-            orig_distance = vincenty(float(origlat), float(origlon), orig_node_lat, orig_node_lon)
-            dest_distance = vincenty(dest_node_lat, dest_node_lon, float(destlat), float(destlon))
-            
-            #print "Origin distance: " + str(orig_distance)
-            #print "Destination distance: " + str(dest_distance)
-            
-            # calculate time to origin and destination nodes (seconds)
-            time_to_orig = int(round(float( float(orig_distance) / float(walking_speed) )))
-            time_to_dest = int(round(float( float(dest_distance) / float(walking_speed) )))
-            
-            #print "Origin time: " + str(time_to_orig)
-            #print "Destination time: " + str(time_to_dest)
-            
-            # adjust departure time by time needed to reach origin node
-            dep_time = (dep_time + time_to_orig)
-            
-            # adjust arrival time by time needed to reach destination node
-            if (arr_time != 0):
-                arr_time = (arr_time - time_to_dest)
-            
-            #print "Adjusted departure time: " + str(dep_time)
-            
-            wo = WalkOptions()
-            wo.transfer_penalty=transfer_penalty
-            wo.walking_speed=walking_speed
-            wo.walking_reluctance=walking_reluctance
-            wo.max_walk=max_walk
-            wo.walking_overage=walking_overage
-            
-            if (transit_mode == "Both"):
-                wo.transit_types = int(14)
-            elif (transit_mode == "Bus"):
-                wo.transit_types = int(8)
-            elif (transit_mode == "Rail"):
-                wo.transit_types = int(6)
-            elif (transit_mode == "None"):
-                wo.transit_types = int(0)
-            
-            # check for less_walking flag
-            if (less_walking == "True"):
-                wo.walking_reluctance *= 10.0
-            
-            # check for bike street_mode
-            if (street_mode == "bike"):
-                wo.transfer_penalty *= 10
-            
-            # create RouteInfo object
-            route_info = RouteInfo()
-            route_info.origlat = origlat
-            route_info.origlon = origlon
-            route_info.dep_time_diff = time_to_orig
-            route_info.destlat = destlat
-            route_info.destlon = destlon
-            route_info.arr_time_diff = time_to_dest
-            route_info.street_mode = street_mode
-            
-            yield "--multipart-path_xml-boundary1234\n";
-            
-			# loop to create multiple responses
-            for q in range(max_results):
-                if (spt is not None):
-                    spt.destroy_no_hash()
-                route_info.first_edge = True
-                route_info.last_edge = False
+                # if the timezone is not specified, default to "America/Chicago"
+                if (timezone == ""):
+                    timezone = "America/Chicago"
                 
-                # initialize return string
-                ret_string = 'Content-Type: text/xml\n\n<?xml version="1.0"?><routes>'
+                # get origin and destination nodes from osm map
+                sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
+                orig_osm, orig_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(origlon, origlat)
+                dest_osm, dest_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(destlon, destlat)
+                
+                #print "\nOrigin OSM: " + str(orig_osm) + " (" + str(orig_osm_dist) + ")"
+                #print "Destination OSM: " + str(dest_osm) + " (" + str(dest_osm_dist) + ")\n"
+                
+                # get origin and destination nodes from gtfs database
+                sys.stderr.write("[get_station_vertex_from_coords," + str(time.time()) + "]\n")
+                orig_sta, orig_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(origlon, origlat)
+                dest_sta, dest_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(destlon, destlat)
+                
+                #print "Origin STA: " + str(orig_sta) + " (" + str(orig_sta_dist) + ")"
+                #print "Destination STA: " + str(dest_sta) + " (" + str(dest_sta_dist) + ")\n"
+                
+                # get coordinates for origin node
+                if (orig_osm_dist < orig_sta_dist):
+                    origin = orig_osm
+                    sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
+                    orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(origin)
+                else:
+                    origin = orig_sta
+                    sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
+                    orig_node_lat, orig_node_lon = self.pggtfsdb.get_coords_for_station_vertex(origin)
+                    
+                # get coordinates for destination node
+                if (dest_osm_dist < dest_sta_dist):
+                    dest = dest_osm
+                    sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
+                    dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
+                else:
+                    dest = dest_sta
+                    sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
+                    dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(dest)
+                
+                #print "Origin: " + str(origin)
+                #print "Destination: " + str(dest) + "\n"
+                
+                #print "Origin coords: " + str(orig_node_lat) + ", " + str(orig_node_lon)
+                #print "Destination coords: " + str(dest_node_lat) + ", " + str(dest_node_lon)
+                
+                # determine distance from actual origin/destination to osm nodes
+                orig_distance = vincenty(float(origlat), float(origlon), orig_node_lat, orig_node_lon)
+                dest_distance = vincenty(dest_node_lat, dest_node_lon, float(destlat), float(destlon))
+                
+                #print "Origin distance: " + str(orig_distance)
+                #print "Destination distance: " + str(dest_distance)
+                
+                # calculate time to origin and destination nodes (seconds)
+                time_to_orig = int(round(float( float(orig_distance) / float(walking_speed) )))
+                time_to_dest = int(round(float( float(dest_distance) / float(walking_speed) )))
+                
+                #print "Origin time: " + str(time_to_orig)
+                #print "Destination time: " + str(time_to_dest)
+                
+                # adjust departure time by time needed to reach origin node
+                dep_time = (dep_time + time_to_orig)
+                
+                # adjust arrival time by time needed to reach destination node
+                if (arr_time != 0):
+                    arr_time = (arr_time - time_to_dest)
+                
+                #print "Adjusted departure time: " + str(dep_time)
+                
+                wo = WalkOptions()
+                wo.transfer_penalty=transfer_penalty
+                wo.walking_speed=walking_speed
+                wo.walking_reluctance=walking_reluctance
+                wo.max_walk=max_walk
+                wo.walking_overage=walking_overage
+                
+                if (transit_mode == "Both"):
+                    wo.transit_types = int(14)
+                elif (transit_mode == "Bus"):
+                    wo.transit_types = int(8)
+                elif (transit_mode == "Rail"):
+                    wo.transit_types = int(6)
+                elif (transit_mode == "None"):
+                    wo.transit_types = int(0)
+                
+                # check for less_walking flag
+                if (less_walking == "True"):
+                    wo.walking_reluctance *= 10.0
+                
+                # check for bike street_mode
+                if (street_mode == "bike"):
+                    wo.transfer_penalty *= 10
+                
+                # create RouteInfo object
+                route_info = RouteInfo()
+                route_info.origlat = origlat
+                route_info.origlon = origlon
+                route_info.dep_time_diff = time_to_orig
+                route_info.destlat = destlat
+                route_info.destlon = destlon
+                route_info.arr_time_diff = time_to_dest
+                route_info.street_mode = street_mode
                 
                 if (arr_time == 0):
                     (spt, edges, vertices) = self.shortest_path(origin,dest,dep_time,wo)
@@ -519,6 +425,7 @@ class RouteServer:
                 
                 # if there are no edges or vertices (i.e., there is no path found)
                 if ((edges is None) or (vertices is None)): raise RoutingException
+                
                 # create WalkPath object
                 walk_path = WalkPath()
                 walk_path.lastlat = origlat
@@ -535,7 +442,7 @@ class RouteServer:
                 sys.stderr.write("[edges_loop," + str(time.time()) + "]\n")
                 
                 # determine the number of edges
-                edges_len = len(edges)            
+                edges_len = len(edges)
                 for i in range(edges_len):
                     
                     if (i == (edges_len-1)):
@@ -552,39 +459,34 @@ class RouteServer:
                 
                 ret_string += '<route dep_time="' + str(route_info.actual_dep_time) + '" req_dep_time="' + str(dep_time - time_to_orig) + '" arr_time="' + str(route_info.actual_arr_time) + '" req_arr_time="' + str(arr_time) + '" origlat="' + str(origlat) + '" origlon="' + str(origlon) + '" destlat="' + str(destlat) + '" destlon="' + str(destlon) + '" timezone="' + timezone + '" total_time="' + str(route_info.actual_arr_time - route_info.actual_dep_time) + '" total_walk_distance="' + str(int(round(walk_path.total_distance)) + int(round(orig_distance)) + int(round(dest_distance))) + '" walking_speed="' + str(walking_speed) + '" seqno="' + str(seqno) + '" version="' + str(version) + '">' + curr_route + '</route>'
                 
-                # close return string
-                if q == max_results:                    
-                    ret_string += '</routes>\n\n--multipart-path_xml-boundary1234--\n\n'
-                else:
-                    ret_string += '</routes>\n\n--multipart-path_xml-boundary1234\n'
-
-                sys.stderr.write("[xml_path_exit_point," + str(time.time()) + "]\n")
+                # accumulate total time
+                total_time += (route_info.actual_arr_time - route_info.actual_dep_time)
                 
-                # return routes xml
-                yield xstr(str(ret_string))
-                
-                if arr_time == 0: 
-                    dep_time = route_info.actual_dep_time + time_to_orig + 60
+                # grab actual time
+                if (arr_time == 0):
+                    ri_actual_time = route_info.actual_arr_time
                 else:
-                    arr_time = route_info.actual_arr_time - time_to_dest - 60
-                            
-    
-        except RoutingException:
-            if (spt is not None):
-                spt.destroy_no_hash()
+                    ri_actual_time = route_info.actual_dep_time
             
-            yield '\n\n--multipart-path_xml-boundary1234\nContent-Type: text/xml\n\n<?xml version="1.0"?><routes></routes>--multipart-path_xml-boundary1234--\n\n '
-            
-        finally:
-#            yield '\n\n--multipart-path_xml-boundary1234--\n\n'
-            # destroy WalkOptions object
-            wo.destroy()
-            
-            # destroy shortest path tree
-            if (spt is not None):
-                spt.destroy_no_hash()
+            except RoutingException:
+                if (spt is not None):
+                    spt.destroy_no_hash()
+                
+            finally:
+                # destroy WalkOptions object
+                wo.destroy()
+                
+                # destroy shortest path tree
+                if (spt is not None):
+                    spt.destroy_no_hash()
         
-    path_xml.mime = 'multipart/x-mixed-replace; boundary="--multipart-path_xml-boundary1234"'
+        # return routes
+        if (return_type == 0):
+            return '<?xml version="1.0"?><routes total_time="' + str(total_time) + '">' + ret_string + '</routes>'
+        else:
+            return (total_time, '<?xml version="1.0"?><routes total_time="' + str(total_time) + '">' + ret_string + '</routes>')
+    
+    path_xml.mime = 'text/xml'
 
 
 import sys
@@ -766,7 +668,7 @@ if __name__ == '__main__':
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
         
-        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + str(stop_desc) + '" alight_time="' + str(alighttime) + '" alight_lat="' + str(lat) + '" alight_lon="' + str(lon) + '" />'
+        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + str(stop_desc) + '" alight_time="' + str(alighttime) + '" alight_lat="' + str(lat) + '" alight_lon="' + str(lon) + '"></transit>'
         
         # if this is the last edge in the route
         if (route_info.last_edge):
@@ -844,7 +746,7 @@ if __name__ == '__main__':
         #stop_desc = stop_desc.replace("&","&amp;")
         stop_desc = stop_desc.replace("&","and")
         
-        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + str(stop_desc) + '" alight_time="' + str(alighttime) + '" alight_lat="' + str(lat) + '" alight_lon="' + str(lon) + '" />'
+        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + str(stop_desc) + '" alight_time="' + str(alighttime) + '" alight_lat="' + str(lat) + '" alight_lon="' + str(lon) + '"></transit>'
         
         # if this is the last edge in the route
         if (route_info.last_edge):
