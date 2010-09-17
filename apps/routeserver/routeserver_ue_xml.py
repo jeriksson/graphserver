@@ -314,8 +314,8 @@ class RouteServer(Servable):
             
             try:
                 # if the departure time is not specified, set it
-                #if (dep_time == 0):
-                #    dep_time = int(time.time())
+                if (dep_time == 0):
+                    dep_time = int(time.time())
                 
                 # if the timezone is not specified, default to "America/Chicago"
                 if (timezone == ""):
