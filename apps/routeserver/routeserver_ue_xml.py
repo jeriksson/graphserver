@@ -226,6 +226,132 @@ class RouteServer(Servable):
         
         return (spt, edges, vertices)
     
+    def find_path_xml_fast(self, locations, new_location, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
+        
+        # determine location ordering
+        loc_ordering = range(len(locations) - 1)
+        
+        #print "loc ordering: " + str(loc_ordering)
+        
+        # determine reverse location ordering
+        loc_ordering_reverse = range(len(locations) - 1)
+        loc_ordering_reverse.reverse()
+        
+        #print "loc ordering reverse: " + str(loc_ordering_reverse)
+        
+        # initialize time parameter
+        ri_actual_time = 0
+        
+        # if departure time query
+        if (arr_time == 0):
+            ri_actual_time = dep_time
+        else:
+            ri_actual_time = arr_time
+        
+        # store origin departure/arrival time
+        orig_dep_time = dep_time
+        orig_arr_time = arr_time
+        
+        # storage for route segments
+        route_segments = []
+        
+        # initialize route segment storage
+        for i in range(len(locations) - 2):
+            route_segments.insert(i, None)
+        
+        #print "route segments: " + str(route_segments)
+        
+        # storage for route paths
+        route_paths = []
+        
+        # iterate through routes
+        for insertion_point in loc_ordering_reverse:
+            
+            for i in loc_ordering:
+                
+                need_to_insert = False
+                need_to_store_segment = False
+                
+                if (insertion_point == i):
+                    need_to_insert = True
+                    location_set = locations[i:]
+                    location_set.insert(1, new_location)
+                    
+                    if (i == 0):
+                        ri_actual_time = orig_dep_time
+                    elif (i > 0):
+                        ri_actual_time = route_segments[i-1][1]
+                    
+                else:
+                    if (route_segments[i] is None):
+                        need_to_store_segment = True
+                        location_set = [locations[i],locations[i+1]]
+                
+                if (arr_time == 0):
+                    dep_time = ri_actual_time
+                else:
+                    arr_time = ri_actual_time
+                
+                if (need_to_insert or need_to_store_segment):
+                    (total_time, ri_actual_time, ret_string) = self.path_xml(location_set, dep_time, arr_time, max_results, timezone, transfer_penalty, walking_speed, walking_reluctance, max_walk, walking_overage, seqno, street_mode, transit_mode, less_walking, udid, version, two_way_routing, 2)
+                
+                if (need_to_insert):
+                    route_paths.insert(0, [total_time, ret_string])
+                
+                if (need_to_store_segment):
+                    route_segments[i] = [total_time, ri_actual_time, ret_string]
+                
+            # remove last value
+            loc_ordering.pop()
+            
+        #print "\n"
+        #
+        #print "route segments:"
+        #for route_segment in route_segments:
+        #    print str(route_segment)
+        #
+        #print "\nroute paths"
+        #for route_path in route_paths:
+        #    print str(route_path)
+        #
+        #print "\ncombined:"
+        #
+        # storage for shortest trip
+        shortest_trip_route = None
+        shortest_trip_total_time = float('infinity')
+        
+        #all_routes = []
+        
+        for i in range(len(route_paths)):
+            route_time = 0
+            route = ""
+            
+            for j in range(i):
+                route += route_segments[j][2]
+                route_time += route_segments[j][0]
+            
+            route += route_paths[i][1]
+            route_time += route_paths[i][0]
+            
+            if (route_time < shortest_trip_total_time):
+                shortest_trip_total_time = route_time
+                shortest_trip_route = route
+            
+            #all_routes.append([route_time, route])
+        #
+        #print "\nall routes:"
+        #
+        #for route in all_routes:
+        #    print route
+        #
+        #print "shortest trip route: " + str(shortest_trip_route)
+        #print "shortest trip total time: " + str(shortest_trip_total_time)
+        
+        # return shortest trip route
+        return '<?xml version="1.0"?><routes total_time="' + str(shortest_trip_total_time) + '">' + str(shortest_trip_route) + '</routes>'
+    
+    find_path_xml_fast.mime = 'text/xml'
+    
     def find_path_xml(self, locations, new_location, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
         
         # storage for shortest trip
@@ -485,8 +611,10 @@ class RouteServer(Servable):
         # return routes
         if (return_type == 0):
             return '<?xml version="1.0"?><routes total_time="' + str(total_time) + '">' + ret_string + '</routes>'
-        else:
+        elif (return_type == 1):
             return (total_time, '<?xml version="1.0"?><routes total_time="' + str(total_time) + '">' + ret_string + '</routes>')
+        elif (return_type == 2):
+            return (total_time, ri_actual_time, ret_string)
     
     path_xml.mime = 'text/xml'
 
