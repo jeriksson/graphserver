@@ -14,6 +14,7 @@ from graphserver.core import State, WalkOptions
 import time
 import sys
 import graphserver
+from graphserver import core
 from graphserver.util import TimeHelpers
 from graphserver.ext.osm.pgosmdb import PostgresGIS_OSMDB
 from graphserver.ext.gtfs.pggtfsdb import PostgresGIS_GTFSDB
@@ -297,6 +298,20 @@ class RouteServer:
             edges = arr_edges
         
         return (spt, edges, vertices)
+
+    def get_cell_weights(self, cellIndex=0, dep_time=0):
+        sys.stderr.write("get_cell_weights   cell index: " + str(cellIndex) + "\n")
+        # if the departure time is not specified, set it
+        if (dep_time == 0):
+            dep_time = int(time.time())
+        wo = WalkOptions()
+        wo.transfer_penalty=100
+        wo.walking_speed=1.0
+        wo.walking_reluctance=1.0
+        wo.max_walk=10000
+        wo.walking_overage=0.1
+        core.shortestPathForKDTree(self.graph, State(self.graph.num_agencies,dep_time), wo, cellIndex)
+        yield "Finished!"
 
     def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat, arrive_time, street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,start_time=0,switch=1):
         

@@ -1,6 +1,7 @@
 #include "graph.h"
 #include "dirfibheap.h"
 #include "simpleMemoryAllocator.h"
+#include <unistd.h>
 
 //GRAPH FUNCTIONS
 
@@ -10,6 +11,7 @@ gNew() {
   this->vertices = create_hashtable_string(16); //TODO: find a better number.
   this->sptVertexMemoryAllocator = memCreateNewAllocator(sizeof(Vertex), 2000000);
   this->sequenceCounter = 0;
+
   return this;
 }
 
@@ -33,18 +35,18 @@ gDestroy( Graph* this, int kill_vertex_payloads, int kill_edge_payloads ) {
   free( this );
 }
 
-void gDestroyVertexAndPayload(void * vertex) {
+void gDestroyVertexAndPayload(void * vertex, void * base, int counter) {
+   //remove the sptIndex associated with this
    Vertex * this = (Vertex*)vertex;
-   if (this && this->label){
-   	 free( this->outgoing );
-  	 free( this->incoming );
-  	 free( this->label );
-   }
+   free( this->outgoing );
+   free( this->incoming );
+   free( this->label );
 }
 
 void
 gDestroy_NoHash( Graph* this) {
   memFreeObjectsAndResources(this->sptVertexMemoryAllocator, gDestroyVertexAndPayload);
+  hashtable_destroy( this->vertices, 0 );
   //destroy the graph object itself
   free( this );
 
@@ -66,6 +68,8 @@ Vertex * gAddVertex_NoHash( Graph* this, Vertex * v) {
   Vertex* exists = gGetVertex_NoHash( this, v );
   if( !exists ) {
     exists = vNew( v->label, v->lat, v->lon, v->sequenceNumber, 1, this->sptVertexMemoryAllocator );
+    exists->gridRow = v->gridRow;
+    exists->gridColumn = v->gridColumn;
     (this->sequenceCounter)++;
   }
 
@@ -247,7 +251,9 @@ gShortestPath( Graph* this, char *from, char *to, State* init_state, int directi
   //destroy vertex payloads - we've transferred the relevant state information out
   //do not destroy the edge payloads - they belong to the creating graph
   //TODO: fix this so memory stops leaking:
+  printf("destroying\n");
   //gDestroy_NoHash( raw_tree );
+  printf("done destroying");
   //return
   *size = n;
   return ret;
@@ -255,6 +261,7 @@ gShortestPath( Graph* this, char *from, char *to, State* init_state, int directi
 
 void**
 sptPathRetro(Graph* g, Vertex * origin, int* vertex_cnt) {
+        printf("in sptPathRetro");
 	Vertex* curr = gGetVertex_NoHash(g, origin);
 	ListNode* incoming = NULL;
 	Edge* edge = NULL;
@@ -267,15 +274,19 @@ sptPathRetro(Graph* g, Vertex * origin, int* vertex_cnt) {
 	if (curr == NULL) {
 		*vertex_cnt = 0;
                 //TODO:Remove
+		printf("No path!!\n");
 		return NULL;
 	}
 	vev_array = (void**)malloc(num_alloc * sizeof(Vertex*));
 	vev_array[num_elements] = (void*)curr;
 	num_elements++;
+	printf("made it past!\n");
 	while ((incoming = vGetIncomingEdgeList(curr))) {
 		if (2*num_elements >= num_alloc-1) {
+			//printf("Realloc\n");
 			vev_array = (void**)realloc(vev_array, ((num_alloc+50) * sizeof(void*)));
 			num_alloc += 50;
+			//printf("Realloc done\n");
 		}
 		edge = liGetData(incoming);
 		vev_array[2*num_elements-1] = (void*)edge;
@@ -284,6 +295,7 @@ sptPathRetro(Graph* g, Vertex * origin, int* vertex_cnt) {
 		num_elements++;
 	}
 	*vertex_cnt = num_elements;
+	//printf("Path has %d vertices\n", num_elements);
 	return vev_array;	
 }
 
@@ -334,6 +346,10 @@ vNew( char* label, float lat, float lon, int seqNum, int useMemAllocator, simple
     this->heapIndex = -1;
     this->lat = lat;
     this->lon = lon;
+    this->gridRow = 0;
+    this->gridColumn = 0;
+    this->cellNumber = -1;
+    this->sptCounter = 0;
     size_t labelsize = strlen(label)+1;
     this->label = (char*)malloc(labelsize*sizeof(char));
     this->sequenceNumber = seqNum;

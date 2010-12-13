@@ -21,7 +21,7 @@ extern void * memAllocateNew(simpleMemoryAllocator * this);
 
 extern void * memAllocateNewFromIndex(simpleMemoryAllocator * this, int index);
 
-extern void memFreeObjectsAndResources(simpleMemoryAllocator * this, void (*f)(void *));
+extern void memFreeObjectsAndResources(simpleMemoryAllocator * this, void (*f)(void *, void *, int));
 
 extern void memFreeObjects(simpleMemoryAllocator * this);
 

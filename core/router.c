@@ -1,5 +1,5 @@
-#include <valgrind/callgrind.h>
 #include <unistd.h>
+#include "kdtree.h"
 
 Graph*
 #ifndef RETRO
@@ -15,6 +15,7 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
   Vertex *spt_u, *spt_v;
   State *du, *dv;
   int count = 1;
+  int heuristic = 0;
 
   //Goal Variables
 #ifndef RETRO
@@ -27,7 +28,9 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
 
   //Get origin vertex to make sure it exists
   Vertex* origin_v = gGetVertex( this, origin );
-  if( origin_v == NULL ) {
+  //Get target for A*   
+  Vertex* target_v = gGetVertex( this, target );
+  if( origin_v == NULL || target_v == NULL ) {
     return NULL;
   }
     
@@ -102,6 +105,19 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
         edges = edges->next;
         continue;
       }
+      
+      //add the heuristic value
+      
+      //kdtree
+      if (v->cellNumber == -1){
+      	getVertexCell(v);	
+      }
+      heuristic = cells[v->cellNumber]->cellWeights[target_v->cellNumber];
+      
+      
+      new_dv->weight = new_dv->weight - new_dv->lastAStarValue + heuristic;
+      new_dv->lastAStarValue = heuristic;
+      
       long new_w = new_dv->weight;
       // If the new way of getting there is better,
       if( new_w < old_w ) {
@@ -112,9 +128,6 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
           spt_v = gAddVertex_NoHash( spt, v );        //Copy v over to the SPT
           count++;
           }
-
-        //if((count%10000) == 0)
-        //  fprintf(stdout, "Shortest path tree size: %d\n",count);
 
         if(spt_v->payload)
             stateDestroy(spt_v->payload);

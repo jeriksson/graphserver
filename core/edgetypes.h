@@ -100,6 +100,7 @@ typedef struct State {
    EdgePayload*  prev_edge;
    char*         trip_id;
    int           n_agencies;
+   int           lastAStarValue;
    ServicePeriod** service_periods;
 } State;
 

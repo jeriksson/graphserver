@@ -45,6 +45,10 @@ struct Vertex {
    State* payload;
    int heapIndex;
    int sequenceNumber;
+   int gridRow;
+   int gridColumn;
+   int cellNumber;
+   int sptCounter;
 } ;
 
 struct Edge {
@@ -102,6 +106,7 @@ Graph*
 gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, WalkOptions* options, long mintime );
 
 //direction specifies forward or retro routing
+
 State*
 gShortestPath( Graph* this, char *from, char *to, State* init_state, int direction, long *size, WalkOptions* options, long timelimit );
 

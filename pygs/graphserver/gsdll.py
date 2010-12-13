@@ -128,6 +128,10 @@ pycapi(lgs.gSetVertexEnabled,c_void_p, [c_void_p, c_char_p, c_int])
 pycapi(lgs.gAddVertices, c_void_p, [c_void_p, c_char_p, c_void_p, c_void_p, c_int])
 pycapi(lgs.gSetThicknesses, c_void_p, [c_void_p, c_char_p])
 
+# GRID API FOR A* HEURISTIC
+pycapi(lgs.buildKDTree,c_void_p, [c_void_p])
+pycapi(lgs.gShortestPathForKDTree,c_void_p, [c_void_p, c_void_p, c_void_p, c_long, c_int])
+
 # SERVICE PERIOD API 
 pycapi(lgs.spNew, c_void_p, [c_long, c_long, c_int, c_void_p])
 pycapi(lgs.spRewind, c_void_p, [c_void_p])

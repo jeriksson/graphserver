@@ -12,6 +12,14 @@ import pytz
 import calendar
 from util import TimeHelpers
 
+def initializeKDTree( g ):
+    print "initializeing KD Tree"
+    lgs.buildKDTree(g.soul)
+    
+def shortestPathForKDTree(g, state, walkOptions, index, maxtime=2000000000):
+    print "in shortestpathkdtree"
+    lgs.gShortestPathForKDTree(g.soul, state.soul, walkOptions.soul, c_long(maxtime), c_int(index))
+
 def indent( a, n ):
     return "\n".join( [" "*n+x for x in a.split("\n")] )
 

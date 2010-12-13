@@ -177,6 +177,7 @@ class GraphDatabase:
                 reporter.flush()
             g.add_edge( vertex1, vertex2, edgetype )
         if reporter: reporter.write("\rLoaded %d edges %s\n" % (num_edges, " "*10))
+        core.initializeKDTree(g)
         
         return g
         

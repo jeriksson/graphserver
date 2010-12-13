@@ -14,7 +14,8 @@ OBJECTS= dirfibheap.o \
 	hashtable_utility.o \
 	simpleMemoryAllocator.o \
 	statetypes.o \
-	explorer.o
+	explorer.o \
+	kdtree.o \
 
 # You know what? Honestly? I don't know what most of these switches do.
 CFLAGS=-g -fno-strict-aliasing -fPIC -Wall
@@ -61,5 +62,6 @@ install:
 	cp hashtable_private.h $(PREFIX)/include/graphserver
 	cp statetypes.h $(PREFIX)/include/graphserver
 	cp explorer.h $(PREFIX)/include/graphserver
+	cp kdtree.h $(PREFIX)/include/graphserver
 clean:
 	rm -f *.o *.so *~ *.d
