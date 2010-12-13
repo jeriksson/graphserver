@@ -331,14 +331,17 @@ void printLineAsKml(double pivot, int useLat, FILE * file){
 void readCellWeightsFromFile(){
 
 	FILE * file;
-	char fileName[40];
+	char fileName[65];
+	char * user;
 	char str[25];
 	char delims[] = ":";
 	char * token = NULL;
 	int currentIndex,targetIndex,weight,counter, index;
 	//we need to loop through all the files that contain grid distances
+	//get user name
+	user = getlogin();
 	for (index=0; index < EstimatedNumberOfCells; ++index){
-		sprintf(fileName, "/home/tim/graphserver/kdtreeInput/cellDistances%d", index);
+		sprintf(fileName, "/home/%s/graphserver/kdtreeInput/cellDistances%d", user, index);
 		file = fopen(fileName,"r");
 		if (file){
 			//now that we have the file, start parsing it.
@@ -371,8 +374,12 @@ void readCellWeightsFromFile(){
 void writeCellWeightsToAFileForABlock(int index){
 	int k;
 	FILE *file;
-	char fileName[30];
-	sprintf(fileName, "~/graphserver/kdtreeInput/cellDistances%d", index);
+	char * user;
+	char fileName[50];
+	user = getlogin();
+	
+	
+	sprintf(fileName, "/home/%s/graphserver/kdtreeInput/cellDistances%d", user, index);
 	file = fopen(fileName,"w+");
 
 	for (k = 0; k < EstimatedNumberOfCells; ++k) {
