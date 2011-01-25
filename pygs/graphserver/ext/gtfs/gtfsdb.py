@@ -162,7 +162,8 @@ class GTFSDatabase:
     STOPS_DEF = ("stops", (("stop_id", None, None),
                            ("stop_name", None, None),
                            ("stop_lat", "FLOAT", None),
-                           ("stop_lon", "FLOAT", None)) )
+                           ("stop_lon", "FLOAT", None),
+                           ("wheelchair_boarding", "INTEGER", None)) )
     CALENDAR_DEF = ("calendar", (("service_id", None, None),
                                  ("monday", "INTEGER", None),
                                  ("tuesday", "INTEGER", None),
