@@ -273,6 +273,16 @@ class GTFSDatabase:
         
         return ret
         
+    def wheelchair_boarding_for_stop_id(self, stop_id):
+        c = self.conn.cursor()
+        c.execute( "SELECT wheelchair_boarding FROM stops WHERE stop_id = ?", (stop_id,) )
+        wheelchair_boarding = c.fetchone()[0]
+        c.close()
+        
+        ret = int(wheelchair_boarding)
+        
+        return ret
+        
     def count_stops(self):
         c = self.conn.cursor()
         c.execute( "SELECT count(*) FROM stops" )
