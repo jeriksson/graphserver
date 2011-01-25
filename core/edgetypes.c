@@ -544,7 +544,7 @@ headwayServiceId(Headway* this) { return this->service_id; }
 //TRIPBOARD FUNCTIONS
 
 TripBoard*
-tbNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type ) {
+tbNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, int wheelchair_boarding ) {
   TripBoard* ret = (TripBoard*)malloc(sizeof(TripBoard));
   ret->type = PL_TRIPBOARD;
   ret->n = 0;
@@ -560,6 +560,7 @@ tbNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int 
   ret->walkBack = &tbWalkBack;
     
   ret->route_type = route_type;
+  ret->wheelchair_boarding = wheelchair_boarding;
     
   ret->overage = 0;
     
@@ -723,6 +724,11 @@ tbGetOverage(TripBoard* this) {
 int
 tbGetRouteType(TripBoard* this) {
 	return this->route_type;
+}
+
+int
+tbGetWheelchairBoarding(TripBoard* this) {
+    return this->wheelchair_boarding;
 }
 
 /*
@@ -1215,7 +1221,7 @@ crWalkBack( EdgePayload* superthis, State* state, WalkOptions* options ) {
 // ALIGHT FUNCTIONS
 
 Alight*
-alNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type ) {
+alNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, int wheelchair_boarding ) {
   Alight* ret = (Alight*)malloc(sizeof(Alight));
   ret->type = PL_ALIGHT;
   ret->n = 0;
@@ -1228,6 +1234,7 @@ alNew( ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int 
   ret->service_id = service_id;
     
   ret->route_type = route_type;
+  ret->wheelchair_boarding = wheelchair_boarding;
     
   ret->walk = &alWalk;
   ret->walkBack = &alWalkBack;
@@ -1387,6 +1394,11 @@ alGetOverage(Alight* this) {
 int
 alGetRouteType(Alight* this) {
 	return this->route_type;
+}
+
+int
+alGetWheelchairBoarding(Alight* this) {
+    return this->wheelchair_boarding;
 }
 
 inline State*

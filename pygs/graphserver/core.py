@@ -1008,11 +1008,12 @@ class TripBoard(EdgePayload):
     num_boardings = cproperty( lgs.tbGetNumBoardings, c_int )
     overage = cproperty( lgs.tbGetOverage, c_int )
     route_type = cproperty( lgs.tbGetRouteType, c_int )
+    wheelchair_boarding = cproperty( lgs.tbGetWheelchairBoarding, c_int )
     
-    def __init__(self, service_id, calendar, timezone, agency, route_type):
+    def __init__(self, service_id, calendar, timezone, agency, route_type, wheelchair_boarding):
         service_id = service_id if type(service_id)==int else calendar.get_service_id_int(service_id)
         
-        self.soul = self._cnew(service_id, calendar.soul, timezone.soul, agency, route_type)
+        self.soul = self._cnew(service_id, calendar.soul, timezone.soul, agency, route_type, wheelchair_boarding)
     
     @property
     def service_id(self):
@@ -1048,7 +1049,7 @@ class TripBoard(EdgePayload):
         return "<TripBoard />"
         
     def __repr__(self):
-        return "<TripBoard int_sid=%d sid=%s agency=%d route_type=%d calendar=%s timezone=%s boardings=%s>"%(self.int_service_id, self.calendar.get_service_id_string(self.int_service_id), self.agency, self.route_type, self.calendar.soul, self.timezone.soul, [self.get_boarding(i) for i in range(self.num_boardings)])
+        return "<TripBoard int_sid=%d sid=%s agency=%d route_type=%d wheelchair_boarding=%d calendar=%s timezone=%s boardings=%s>"%(self.int_service_id, self.calendar.get_service_id_string(self.int_service_id), self.agency, self.route_type, self.wheelchair_boarding, self.calendar.soul, self.timezone.soul, [self.get_boarding(i) for i in range(self.num_boardings)])
         
     def __getstate__(self):
         state = {}
@@ -1056,6 +1057,7 @@ class TripBoard(EdgePayload):
         state['timezone'] = self.timezone.soul
         state['agency'] = self.agency
         state['route_type'] = self.route_type
+        state['wheelchair_boarding'] = self.wheelchair_boarding
         state['int_sid'] = self.int_service_id
         boardings = []
         for i in range(self.num_boardings):
@@ -1074,8 +1076,9 @@ class TripBoard(EdgePayload):
         int_sid = state['int_sid']
         agency = state['agency']
         route_type = state['route_type']
+        wheelchair_boarding = state['wheelchair_boarding']
         
-        ret = TripBoard(int_sid, calendar, timezone, agency, route_type)
+        ret = TripBoard(int_sid, calendar, timezone, agency, route_type, wheelchair_boarding)
         
         for trip_id, depart in state['boardings']:
             ret.add_boarding( trip_id, depart )
@@ -1252,11 +1255,12 @@ class Alight(EdgePayload):
     num_alightings = cproperty( lgs.alGetNumAlightings, c_int )
     overage = cproperty( lgs.alGetOverage, c_int )
     route_type = cproperty( lgs.alGetRouteType, c_int )
+    wheelchair_boarding = cproperty( lgs.alGetWheelchairBoarding, c_int )
     
-    def __init__(self, service_id, calendar, timezone, agency, route_type):
+    def __init__(self, service_id, calendar, timezone, agency, route_type, wheelchair_boarding):
         service_id = service_id if type(service_id)==int else calendar.get_service_id_int(service_id)
         
-        self.soul = self._cnew(service_id, calendar.soul, timezone.soul, agency, route_type)
+        self.soul = self._cnew(service_id, calendar.soul, timezone.soul, agency, route_type, wheelchair_boarding)
         
     def add_alighting(self, trip_id, arrival):
         lgs.alAddAlighting( self.soul, trip_id, arrival )
@@ -1288,7 +1292,7 @@ class Alight(EdgePayload):
         return "<Alight/>"
         
     def __repr__(self):
-        return "<Alight int_sid=%d agency=%d route_type=%d calendar=%s timezone=%s alightings=%s>"%(self.int_service_id, self.agency, self.route_type, self.calendar.soul, self.timezone.soul, [self.get_alighting(i) for i in range(self.num_alightings)])
+        return "<Alight int_sid=%d agency=%d route_type=%d wheelchair_boarding=%d calendar=%s timezone=%s alightings=%s>"%(self.int_service_id, self.agency, self.route_type, self.wheelchair_boarding, self.calendar.soul, self.timezone.soul, [self.get_alighting(i) for i in range(self.num_alightings)])
         
     def __getstate__(self):
         state = {}
@@ -1296,6 +1300,7 @@ class Alight(EdgePayload):
         state['timezone'] = self.timezone.soul
         state['agency'] = self.agency
         state['route_type'] = self.route_type
+        state['wheelchair_boarding'] = self.wheelchair_boarding
         state['int_sid'] = self.int_service_id
         alightings = []
         for i in range(self.num_alightings):
@@ -1314,8 +1319,9 @@ class Alight(EdgePayload):
         int_sid = state['int_sid']
         agency = state['agency']
         route_type = state['route_type']
+        wheelchair_boarding = state['wheelchair_boarding']
         
-        ret = Alight(int_sid, calendar, timezone, agency, route_type)
+        ret = Alight(int_sid, calendar, timezone, agency, route_type, wheelchair_boarding)
         
         for trip_id, arrival in state['alightings']:
             ret.add_alighting( trip_id, arrival )

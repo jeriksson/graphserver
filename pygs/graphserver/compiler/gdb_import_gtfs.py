@@ -31,7 +31,7 @@ def gdb_boardalight_load_bundle(gdb, agency_namespace, gtfsdb, bundle, service_i
         
         trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled = stop_time_bundle[0]
         
-        board_stop_id, board_stop_name, board_stop_lat, board_stop_lon = gtfsdb.stop(stop_id)
+        board_stop_id, board_stop_name, board_stop_lat, board_stop_lon, board_wheelchair_boarding = gtfsdb.stop(stop_id)
         route_type = gtfsdb.route_type_for_trip_id(trip_id)
         
         if arrival_time != departure_time:
@@ -50,7 +50,7 @@ def gdb_boardalight_load_bundle(gdb, agency_namespace, gtfsdb, bundle, service_i
         
         gdb.add_vertex( patternstop_vx_name, board_stop_lat, board_stop_lon, cursor )
         
-        b = TripBoard(service_id, sc, tz, agency_id_int, route_type)
+        b = TripBoard(service_id, sc, tz, agency_id_int, route_type, board_wheelchair_boarding)
         for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled in stop_time_bundle:
             b.add_boarding( trip_id, departure_time )
             
@@ -61,7 +61,7 @@ def gdb_boardalight_load_bundle(gdb, agency_namespace, gtfsdb, bundle, service_i
 
         trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled = stop_time_bundle[0]
         
-        alight_stop_id, alight_stop_name, alight_stop_lat, alight_stop_lon = gtfsdb.stop(stop_id)
+        alight_stop_id, alight_stop_name, alight_stop_lat, alight_stop_lon, alight_wheelchair_boarding = gtfsdb.stop(stop_id)
         route_type = gtfsdb.route_type_for_trip_id(trip_id)
         
         if arrival_time != departure_time:
@@ -71,7 +71,7 @@ def gdb_boardalight_load_bundle(gdb, agency_namespace, gtfsdb, bundle, service_i
         
         gdb.add_vertex( patternstop_vx_name, alight_stop_lat, alight_stop_lon, cursor )
         
-        al = Alight(service_id, sc, tz, agency_id_int, route_type)
+        al = Alight(service_id, sc, tz, agency_id_int, route_type, alight_wheelchair_boarding)
         for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled in stop_time_bundle:
             al.add_alighting( trip_id.encode('ascii'), arrival_time )
             
@@ -107,7 +107,7 @@ def gdb_load_gtfsdb_to_boardalight(gdb, agency_namespace, gtfsdb, agency_id, cur
     sc = gtfsdb_to_service_calendar(gtfsdb, agency_id )
 
     # enter station vertices
-    for stop_id, stop_name, stop_lat, stop_lon in gtfsdb.stops():
+    for stop_id, stop_name, stop_lat, stop_lon, wheelchair_boarding in gtfsdb.stops():
         station_vertex_label = "sta-%s"%stop_id
         reporter.write("adding station vertex '%s'\n"%station_vertex_label)
         gdb.add_vertex( station_vertex_label, stop_lat, stop_lon )
