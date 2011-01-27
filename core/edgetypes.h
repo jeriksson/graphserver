@@ -40,6 +40,7 @@ typedef struct WalkOptions {
     float walking_overage;
     int turn_penalty;
     int transit_types;
+    int with_wheelchair;
 } WalkOptions;
 
 WalkOptions*
@@ -89,6 +90,12 @@ woGetTransitTypes( WalkOptions* this );
 
 void
 woSetTransitTypes( WalkOptions* this, int transit_types );
+
+int
+woGetWithWheelchair( WalkOptions* this );
+
+void
+woSetWithWheelchair( WalkOptions* this, int with_wheelchair );
 
 //---------------DECLARATIONS FOR STATE CLASS---------------------
 

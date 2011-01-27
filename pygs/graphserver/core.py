@@ -378,6 +378,7 @@ class WalkOptions(CShadow):
     max_walk = cproperty(lgs.woGetMaxWalk, c_int, setter=lgs.woSetMaxWalk)
     walking_overage = cproperty(lgs.woGetWalkingOverage, c_float, setter=lgs.woSetWalkingOverage)
     transit_types = cproperty(lgs.woGetTransitTypes, c_int, setter=lgs.woSetTransitTypes)
+    with_wheelchair = cproperty(lgs.woGetWithWheelchair, c_int, setter=lgs.woSetWithWheelchair)
 
 class Vertex(CShadow):
     

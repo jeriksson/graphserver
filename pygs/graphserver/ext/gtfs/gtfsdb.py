@@ -247,7 +247,7 @@ class GTFSDatabase:
     def stops(self):
         c = self.conn.cursor()
         
-        c.execute( "SELECT * FROM stops" )
+        c.execute( "SELECT stop_id, stop_name, stop_lat, stop_lon FROM stops" )
         ret = list(c)
         
         c.close()
@@ -255,7 +255,7 @@ class GTFSDatabase:
         
     def stop(self, stop_id):
         c = self.conn.cursor()
-        c.execute( "SELECT * FROM stops WHERE stop_id = ?", (stop_id,) )
+        c.execute( "SELECT stop_id, stop_name, stop_lat, stop_lon FROM stops WHERE stop_id = ?", (stop_id,) )
         ret = c.next()
         c.close()
         return ret
@@ -344,7 +344,7 @@ class GTFSDatabase:
     def nearby_stops(self, lat, lng, range):
         c = self.conn.cursor()
         
-        c.execute( "SELECT * FROM stops WHERE stop_lat BETWEEN ? AND ? AND stop_lon BETWEEN ? And ?", (lat-range, lat+range, lng-range, lng+range) )
+        c.execute( "SELECT stop_id, stop_name, stop_lat, stop_lon FROM stops WHERE stop_lat BETWEEN ? AND ? AND stop_lon BETWEEN ? And ?", (lat-range, lat+range, lng-range, lng+range) )
         
         for row in c:
             yield row

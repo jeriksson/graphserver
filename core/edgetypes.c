@@ -17,6 +17,7 @@ woNew() {
     ret->max_walk = 10000; //meters
     ret->walking_overage = 0.1;
     ret->transit_types = 2147483647; // set all int bits to 1
+    ret->with_wheelchair = 0; // set default value to 0 (false)
     return ret;
 }
 
@@ -123,6 +124,16 @@ woGetTransitTypes( WalkOptions* this ) {
 void
 woSetTransitTypes( WalkOptions* this, int transit_types ) {
 	this->transit_types = transit_types;
+}
+
+int
+woGetWithWheelchair( WalkOptions* this ) {
+    return this->with_wheelchair;
+}
+
+void
+woSetWithWheelchair( WalkOptions* this, int with_wheelchair ) {
+    this->with_wheelchair = with_wheelchair;
 }
 
 //STATE FUNCTIONS
@@ -258,8 +269,13 @@ epWalk( EdgePayload* this, State* params, WalkOptions* options ) {
   if( !this )
     return NULL;
   
-  if ( (this->type == PL_TRIPBOARD) && ((options->transit_types & (1 << ((TripBoard*)this)->route_type)) == 0) ) {
-  	return NULL;
+  if ( this->type == PL_TRIPBOARD ) {
+      if ( (options->transit_types & (1 << ((TripBoard*)this)->route_type)) == 0 ) {
+          return NULL;
+      }
+      else if ( (options->with_wheelchair == 1) && (((TripBoard*)this)->wheelchair_boarding == 0) ) {
+          return NULL;
+      }
   }
   else if ( (this->type == PL_HEADWAYBOARD) && ((options->transit_types & (1 << ((HeadwayBoard*)this)->route_type)) == 0) ) {
   	return NULL;
@@ -278,8 +294,13 @@ epWalkBack( EdgePayload* this, State* params, WalkOptions* options ) {
   if(!this)
     return NULL;
   
-  if ( (this->type == PL_ALIGHT) && ((options->transit_types & (1 << ((Alight*)this)->route_type)) == 0) ) {
-  	return NULL;
+  if ( this->type == PL_ALIGHT ) {
+      if ( (options->transit_types & (1 << ((Alight*)this)->route_type)) == 0 ) {
+          return NULL;
+      }
+      else if ( (options->with_wheelchair == 1) && (((Alight*)this)->wheelchair_boarding == 0) ) {
+          return NULL;
+      }
   }
   else if ( (this->type == PL_HEADWAYALIGHT) && ((options->transit_types & (1 << ((HeadwayAlight*)this)->route_type)) == 0) ) {
   	return NULL;
