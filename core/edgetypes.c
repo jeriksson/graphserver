@@ -277,6 +277,9 @@ epWalk( EdgePayload* this, State* params, WalkOptions* options ) {
           return NULL;
       }
   }
+  else if ( (this->type == PL_ALIGHT) && (options->with_wheelchair == 1) && (((Alight*)this)->wheelchair_boarding == 0) ) {
+      return NULL;
+  }
   else if ( (this->type == PL_HEADWAYBOARD) && ((options->transit_types & (1 << ((HeadwayBoard*)this)->route_type)) == 0) ) {
   	return NULL;
   }
@@ -301,6 +304,9 @@ epWalkBack( EdgePayload* this, State* params, WalkOptions* options ) {
       else if ( (options->with_wheelchair == 1) && (((Alight*)this)->wheelchair_boarding == 0) ) {
           return NULL;
       }
+  }
+  else if ( (this->type == PL_TRIPBOARD) && (options->with_wheelchair == 1) && (((TripBoard*)this)->wheelchair_boarding == 0) ) {
+      return NULL;
   }
   else if ( (this->type == PL_HEADWAYALIGHT) && ((options->transit_types & (1 << ((HeadwayAlight*)this)->route_type)) == 0) ) {
   	return NULL;
