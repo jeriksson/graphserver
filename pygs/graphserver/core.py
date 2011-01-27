@@ -1115,21 +1115,24 @@ class HeadwayBoard(EdgePayload):
     timezone = cproperty( lgs.hbGetTimezone, c_void_p, Timezone )
     agency = cproperty( lgs.hbGetAgency, c_int )
     route_type = cproperty( lgs.hbGetRouteType, c_int )
+    wheelchair_boarding = cproperty( lgs.hbGetWheelchairBoarding, c_int )
     int_service_id = cproperty( lgs.hbGetServiceId, c_int )
     trip_id = cproperty( lgs.hbGetTripId, c_char_p )
     start_time = cproperty( lgs.hbGetStartTime, c_int )
     end_time = cproperty( lgs.hbGetEndTime, c_int )
     headway_secs = cproperty( lgs.hbGetHeadwaySecs, c_int )
     
-    def __init__(self, service_id, calendar, timezone, agency, route_type, trip_id, start_time, end_time, headway_secs):
+    def __init__(self, service_id, calendar, timezone, agency, route_type, wheelchair_boarding, trip_id, start_time, end_time, headway_secs):
         service_id = service_id if type(service_id)==int else calendar.get_service_id_int(service_id)
         
-        self.soul = self._cnew(service_id, calendar.soul, timezone.soul, agency, route_type, trip_id, start_time, end_time, headway_secs)
+        self.soul = self._cnew(service_id, calendar.soul, timezone.soul, agency, route_type, wheelchair_boarding, trip_id, start_time, end_time, headway_secs)
         
     def __repr__(self):
-        return "<HeadwayBoard calendar=%d timezone=%d agency=%d service_id=%d trip_id=\"%s\" start_time=%d end_time=%d headway_secs=%d>"%(self.calendar.soul,
+        return "<HeadwayBoard calendar=%d timezone=%d agency=%d route_type=%d wheelchair_boarding=%d service_id=%d trip_id=\"%s\" start_time=%d end_time=%d headway_secs=%d>"%(self.calendar.soul,
                                                                                                                                           self.timezone.soul,
                                                                                                                                           self.agency,
+                                                                                                                                          self.route_type,
+                                                                                                                                          self.wheelchair_boarding,
                                                                                                                                           self.int_service_id,
                                                                                                                                           self.trip_id,
                                                                                                                                           self.start_time,
@@ -1146,6 +1149,7 @@ class HeadwayBoard(EdgePayload):
         state['timezone'] = self.timezone.soul
         state['agency'] = self.agency
         state['route_type'] = self.route_type
+        state['wheelchair_boarding'] = self.wheelchair_boarding
         state['int_sid'] = self.int_service_id
         state['trip_id'] = self.trip_id
         state['start_time'] = self.start_time
@@ -1164,12 +1168,13 @@ class HeadwayBoard(EdgePayload):
         int_sid = state['int_sid']
         agency = state['agency']
         route_type = state['route_type']
+        wheelchair_boarding = state['wheelchair_boarding']
         trip_id = state['trip_id']
         start_time = state['start_time']
         end_time = state['end_time']
         headway_secs = state['headway_secs']
         
-        ret = HeadwayBoard(int_sid, calendar, timezone, agency, route_type, trip_id, start_time, end_time, headway_secs)
+        ret = HeadwayBoard(int_sid, calendar, timezone, agency, route_type, wheelchair_boarding, trip_id, start_time, end_time, headway_secs)
             
         return ret
         
@@ -1178,21 +1183,24 @@ class HeadwayAlight(EdgePayload):
     timezone = cproperty( lgs.haGetTimezone, c_void_p, Timezone )
     agency = cproperty( lgs.haGetAgency, c_int )
     route_type = cproperty( lgs.haGetRouteType, c_int )
+    wheelchair_boarding = cproperty( lgs.haGetWheelchairBoarding, c_int )
     int_service_id = cproperty( lgs.haGetServiceId, c_int )
     trip_id = cproperty( lgs.haGetTripId, c_char_p )
     start_time = cproperty( lgs.haGetStartTime, c_int )
     end_time = cproperty( lgs.haGetEndTime, c_int )
     headway_secs = cproperty( lgs.haGetHeadwaySecs, c_int )
     
-    def __init__(self, service_id, calendar, timezone, agency, route_type, trip_id, start_time, end_time, headway_secs):
+    def __init__(self, service_id, calendar, timezone, agency, route_type, wheelchair_boarding, trip_id, start_time, end_time, headway_secs):
         service_id = service_id if type(service_id)==int else calendar.get_service_id_int(service_id)
         
-        self.soul = self._cnew(service_id, calendar.soul, timezone.soul, agency, route_type, trip_id, start_time, end_time, headway_secs)
+        self.soul = self._cnew(service_id, calendar.soul, timezone.soul, agency, route_type, wheelchair_boarding, trip_id, start_time, end_time, headway_secs)
         
     def __repr__(self):
-        return "<HeadwayAlight calendar=%d timezone=%d agency=%d service_id=%d trip_id=\"%s\" start_time=%d end_time=%d headway_secs=%d>"%(self.calendar.soul,
+        return "<HeadwayAlight calendar=%d timezone=%d agency=%d route_type=%d wheelchair_boarding=%d service_id=%d trip_id=\"%s\" start_time=%d end_time=%d headway_secs=%d>"%(self.calendar.soul,
                                                                                                                                           self.timezone.soul,
                                                                                                                                           self.agency,
+                                                                                                                                          self.route_type,
+                                                                                                                                          self.wheelchair_boarding,
                                                                                                                                           self.int_service_id,
                                                                                                                                           self.trip_id,
                                                                                                                                           self.start_time,
@@ -1205,6 +1213,7 @@ class HeadwayAlight(EdgePayload):
         state['timezone'] = self.timezone.soul
         state['agency'] = self.agency
         state['route_type'] = self.route_type
+        state['wheelchair_boarding'] = self.wheelchair_boarding
         state['int_sid'] = self.int_service_id
         state['trip_id'] = self.trip_id
         state['start_time'] = self.start_time
@@ -1223,12 +1232,13 @@ class HeadwayAlight(EdgePayload):
         int_sid = state['int_sid']
         agency = state['agency']
         route_type = state['route_type']
+        wheelchair_boarding = state['wheelchair_boarding']
         trip_id = state['trip_id']
         start_time = state['start_time']
         end_time = state['end_time']
         headway_secs = state['headway_secs']
         
-        ret = HeadwayAlight(int_sid, calendar, timezone, agency, route_type, trip_id, start_time, end_time, headway_secs)
+        ret = HeadwayAlight(int_sid, calendar, timezone, agency, route_type, wheelchair_boarding, trip_id, start_time, end_time, headway_secs)
             
         return ret
     

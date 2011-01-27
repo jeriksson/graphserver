@@ -277,11 +277,19 @@ epWalk( EdgePayload* this, State* params, WalkOptions* options ) {
           return NULL;
       }
   }
+  else if ( this->type == PL_HEADWAYBOARD ) {
+      if ( (options->transit_types & (1 << ((HeadwayBoard*)this)->route_type)) == 0 ) {
+          return NULL;
+      }
+      else if ( (options->with_wheelchair == 1) && (((HeadwayBoard*)this)->wheelchair_boarding == 0) ) {
+          return NULL;
+      }
+  }
   else if ( (this->type == PL_ALIGHT) && (options->with_wheelchair == 1) && (((Alight*)this)->wheelchair_boarding == 0) ) {
       return NULL;
   }
-  else if ( (this->type == PL_HEADWAYBOARD) && ((options->transit_types & (1 << ((HeadwayBoard*)this)->route_type)) == 0) ) {
-  	return NULL;
+  else if ( (this->type == PL_HEADWAYALIGHT) && (options->with_wheelchair == 1) && (((HeadwayAlight*)this)->wheelchair_boarding == 0) ) {
+      return NULL;
   }
   
   if( this->type == PL_EXTERNVALUE ) {
@@ -305,11 +313,19 @@ epWalkBack( EdgePayload* this, State* params, WalkOptions* options ) {
           return NULL;
       }
   }
+  else if ( this->type == PL_HEADWAYALIGHT ) {
+      if ( (options->transit_types & (1 << ((HeadwayAlight*)this)->route_type)) == 0 ) {
+          return NULL;
+      }
+      else if ( (options->with_wheelchair == 1) && (((HeadwayAlight*)this)->wheelchair_boarding == 0) ) {
+          return NULL;
+      }
+  }
   else if ( (this->type == PL_TRIPBOARD) && (options->with_wheelchair == 1) && (((TripBoard*)this)->wheelchair_boarding == 0) ) {
       return NULL;
   }
-  else if ( (this->type == PL_HEADWAYALIGHT) && ((options->transit_types & (1 << ((HeadwayAlight*)this)->route_type)) == 0) ) {
-  	return NULL;
+  else if ( (this->type == PL_HEADWAYBOARD) && (options->with_wheelchair == 1) && (((HeadwayBoard*)this)->wheelchair_boarding == 0) ) {
+      return NULL;
   }
   
   if( this->type == PL_EXTERNVALUE ){
@@ -859,7 +875,7 @@ tbWalkBack(EdgePayload* this, State* params, WalkOptions* options) {
 // HEADWAYBOARD FUNCTIONS
 
 HeadwayBoard*
-hbNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, char* trip_id, int start_time, int end_time, int headway_secs ) {
+hbNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, int wheelchair_boarding, char* trip_id, int start_time, int end_time, int headway_secs ) {
   HeadwayBoard* ret = (HeadwayBoard*)malloc(sizeof(HeadwayBoard));
   ret->type = PL_HEADWAYBOARD;
 
@@ -876,6 +892,7 @@ hbNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int
   ret->service_id = service_id;
     
   ret->route_type = route_type;
+  ret->wheelchair_boarding = wheelchair_boarding;
     
   ret->walk = &hbWalk;
   ret->walkBack = &hbWalkBack;
@@ -907,6 +924,11 @@ hbGetAgency( HeadwayBoard* this ) {
 int
 hbGetRouteType( HeadwayBoard* this ) {
   return this->route_type;
+}
+
+int
+hbGetWheelchairBoarding( HeadwayBoard* this ) {
+  return this->wheelchair_boarding;
 }
 
 ServiceId
@@ -1023,7 +1045,7 @@ hbWalkBack(EdgePayload* superthis, State* params, WalkOptions* options) {
 // HEADWAYALIGHT FUNCTIONS
 
 HeadwayAlight*
-haNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, char* trip_id, int start_time, int end_time, int headway_secs ) {
+haNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int agency, int route_type, int wheelchair_boarding, char* trip_id, int start_time, int end_time, int headway_secs ) {
   HeadwayAlight* ret = (HeadwayAlight*)malloc(sizeof(HeadwayAlight));
   ret->type = PL_HEADWAYALIGHT;
 
@@ -1040,6 +1062,7 @@ haNew(  ServiceId service_id, ServiceCalendar* calendar, Timezone* timezone, int
   ret->service_id = service_id;
     
   ret->route_type = route_type;
+  ret->wheelchair_boarding = wheelchair_boarding;
     
   ret->walk = &haWalk;
   ret->walkBack = &haWalkBack;
@@ -1071,6 +1094,11 @@ haGetAgency( HeadwayAlight* this ) {
 int
 haGetRouteType( HeadwayAlight* this ) {
   return this->route_type;
+}
+
+int
+haGetWheelchairBoarding( HeadwayAlight* this ) {
+  return this->wheelchair_boarding;
 }
 
 ServiceId

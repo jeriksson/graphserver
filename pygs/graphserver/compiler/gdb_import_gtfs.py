@@ -134,24 +134,22 @@ def gdb_load_gtfsdb_to_boardalight(gdb, agency_namespace, gtfsdb, agency_id, cur
         service_id = service_id.encode('utf-8')
         
         route_type = gtfsdb.route_type_for_trip_id(trip_id)
-        
-        hb = HeadwayBoard( service_id, sc, tz, agency_id_int, route_type, trip_id.encode('utf-8'), start_time, end_time, headway_secs )
-        ha = HeadwayAlight( service_id, sc, tz, agency_id_int, route_type, trip_id.encode('utf-8'), start_time, end_time, headway_secs )
-        
         stoptimes = list(gtfsdb.execute( "SELECT * FROM stop_times WHERE trip_id=? ORDER BY stop_sequence", (trip_id,)) )
         
         #add board edges
         for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled, stop_headsign in stoptimes[:-1]:
             board_stop_id, board_stop_name, board_stop_lat, board_stop_lon = gtfsdb.stop(stop_id)
+            wheelchair_boarding = gtfsdb.wheelchair_boarding_for_stop_id(stop_id)
             gdb.add_vertex( "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id), board_stop_lat, board_stop_lon )
-            gdb.add_edge( "sta-%s"%stop_id, "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id), hb )
+            gdb.add_edge( "sta-%s"%stop_id, "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id), HeadwayBoard( service_id, sc, tz, agency_id_int, route_type, wheelchair_boarding, trip_id.encode('utf-8'), start_time, end_time, headway_secs ) )
             
         #add alight edges
         for trip_id, arrival_time, departure_time, stop_id, stop_sequence, stop_dist_traveled, stop_headsign in stoptimes[1:]:
             alight_stop_id, alight_stop_name, alight_stop_lat, alight_stop_lon = gtfsdb.stop(stop_id)
+            wheelchair_boarding = gtfsdb.wheelchair_boarding_for_stop_id(stop_id)
             gdb.add_vertex( "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id), alight_stop_lat, alight_stop_lon )
-            gdb.add_edge( "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id), "sta-%s"%stop_id, ha )
-        
+            gdb.add_edge( "hwv-%s-%s-%s"%(agency_namespace,stop_id, trip_id), "sta-%s"%stop_id, HeadwayAlight( service_id, sc, tz, agency_id_int, route_type, wheelchair_boarding, trip_id.encode('utf-8'), start_time, end_time, headway_secs ) )
+            
         #add crossing edges
         for (trip_id1, arrival_time1, departure_time1, stop_id1, stop_sequence1, stop_dist_traveled1, stop_headsign1), (trip_id2, arrival_time2, departure_time2, stop_id2, stop_sequence2, stop_dist_traveled2, stop_headsign2) in cons(stoptimes):
             gdb.add_edge( "hwv-%s-%s-%s"%(agency_namespace,stop_id1, trip_id1), "hwv-%s-%s-%s"%(agency_namespace,stop_id2, trip_id2), Crossing(arrival_time2-departure_time1) )
