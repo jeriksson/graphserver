@@ -772,7 +772,11 @@ if __name__ == '__main__':
         if ("PACE_" in route_id):
             route_id = str(route_desc[0][2])
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_desc[0][3]) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        route_type = str(route_desc[0][3])
+        if (route_type == "1"):
+            stop_id = list( pggtfsdb.execute( "SELECT stop_id FROM stops WHERE stop_name='" + stop_desc + "' and stop_id like '4%'") )[0][0]
+        
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_type) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
