@@ -511,7 +511,7 @@ class RouteServer:
                 wo.walking_reluctance *= 10.0
             
             # check for bike street_mode
-            if (street_mode == "bike"):
+            if (street_mode == "bike" or street_mode == "wheelchair"):
                 wo.transfer_penalty *= 10
             
             # create RouteInfo object
@@ -774,7 +774,9 @@ if __name__ == '__main__':
         
         route_type = str(route_desc[0][3])
         if (route_type == "1"):
-            stop_id = list( pggtfsdb.execute( "SELECT stop_id FROM stops WHERE stop_name='" + stop_desc + "' and stop_id like '4%'") )[0][0]
+            parent_station = list( pggtfsdb.execute( "SELECT parent_station FROM stops WHERE stop_id='" + stop_id + "'") )
+            if (len(parent_station) > 0):
+                stop_id = parent_station[0][0]
         
         ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_type) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
         

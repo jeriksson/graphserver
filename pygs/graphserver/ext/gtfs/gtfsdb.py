@@ -163,6 +163,7 @@ class GTFSDatabase:
                            ("stop_name", None, None),
                            ("stop_lat", "FLOAT", None),
                            ("stop_lon", "FLOAT", None),
+                           ("parent_station", None, None),
                            ("wheelchair_boarding", "INTEGER", None)) )
     CALENDAR_DEF = ("calendar", (("service_id", None, None),
                                  ("monday", "INTEGER", None),
