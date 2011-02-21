@@ -313,7 +313,7 @@ class RouteServer:
         core.shortestPathForKDTree(self.graph, State(self.graph.num_agencies,dep_time), wo, cellIndex)
         yield "Finished!"
 
-    def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat, arrive_time, street_mode="walk", transit_mode="Both", with_wheelchair="False", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,start_time=0,switch=1):
+    def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat, arrive_time, street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,start_time=0,switch=1):
         
         # get origin and destination nodes from osm map
         sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
@@ -352,10 +352,10 @@ class RouteServer:
         wo.max_walk=max_walk
         wo.walking_overage=walking_overage
         
-        if (with_wheelchair == "False"):
-            wo.with_wheelchair = int(False)
-        else:
+        if (street_mode == "wheelchair"):
             wo.with_wheelchair = int(True)
+        else:
+            wo.with_wheelchair = int(False)
         
         if (transit_mode == "Both"):
             wo.transit_types = int(14)
@@ -371,7 +371,7 @@ class RouteServer:
             wo.walking_reluctance *= 10.0
             
         # check for bike street_mode
-        if (street_mode == "bike"):
+        if (street_mode == "bike" or street_mode == "wheelchair"):
             wo.transfer_penalty *= 10
     
         if (start_time == 0):
@@ -386,7 +386,7 @@ class RouteServer:
 
     getUrbanExplorerBlob.mime = 'image/png'
     
-    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", with_wheelchair="False", less_walking="False", udid="", version="2.0", two_way_routing="True"):
+    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
         
         if (two_way_routing == "False"):
             self.two_way_routing = False
@@ -492,10 +492,10 @@ class RouteServer:
             wo.max_walk=max_walk
             wo.walking_overage=walking_overage
             
-            if (with_wheelchair == "False"):
-                wo.with_wheelchair = int(False)
-            else:
+            if (street_mode == "wheelchair"):
                 wo.with_wheelchair = int(True)
+            else:
+                wo.with_wheelchair = int(False)
             
             if (transit_mode == "Both"):
                 wo.transit_types = int(14)
@@ -510,7 +510,7 @@ class RouteServer:
             if (less_walking == "True"):
                 wo.walking_reluctance *= 10.0
             
-            # check for bike street_mode
+            # check for bike or wheelchair street_mode
             if (street_mode == "bike" or street_mode == "wheelchair"):
                 wo.transfer_penalty *= 10
             
