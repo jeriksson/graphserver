@@ -305,7 +305,7 @@ class RouteServer:
         if (dep_time == 0):
             dep_time = int(time.time())
         wo = WalkOptions()
-        wo.transfer_penalty=100
+        wo.transfer_penalty=60
         wo.walking_speed=1.0
         wo.walking_reluctance=1.0
         wo.max_walk=10000
@@ -313,7 +313,7 @@ class RouteServer:
         core.shortestPathForKDTree(self.graph, State(self.graph.num_agencies,dep_time), wo, cellIndex)
         yield "Finished!"
 
-    def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat, arrive_time, street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=100,walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,start_time=0,switch=1):
+    def getUrbanExplorerBlob(self, origlon, origlat, destlon, destlat, arrive_time, street_mode="walk", transit_mode="Both", less_walking="False", transfer_penalty=60, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1,start_time=0,switch=1):
         
         # get origin and destination nodes from osm map
         sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
@@ -352,11 +352,18 @@ class RouteServer:
         wo.max_walk=max_walk
         wo.walking_overage=walking_overage
         
+        # check for wheelchair street_mode
         if (street_mode == "wheelchair"):
             wo.with_wheelchair = int(True)
+            wo.transfer_penalty = 180
         else:
             wo.with_wheelchair = int(False)
         
+        # check for bike street_mode
+        if (street_mode == "bike"):
+            wo.transfer_penalty = 120
+        
+        # check for transit_mode
         if (transit_mode == "Both"):
             wo.transit_types = int(14)
         elif (transit_mode == "Bus"):
@@ -369,11 +376,7 @@ class RouteServer:
         # check for less_walking flag
         if (less_walking == "True"):
             wo.walking_reluctance *= 10.0
-            
-        # check for bike street_mode
-        if (street_mode == "bike" or street_mode == "wheelchair"):
-            wo.transfer_penalty *= 10
-    
+        
         if (start_time == 0):
             start_time = int(time.time())
     
@@ -386,7 +389,7 @@ class RouteServer:
 
     getUrbanExplorerBlob.mime = 'image/png'
     
-    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=100, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
+    def path_xml(self, origlon, origlat, destlon, destlat, dep_time=0, arr_time=0, max_results=1, timezone="", transfer_penalty=60, walking_speed=1.0, walking_reluctance=1.0, max_walk=10000, walking_overage=0.1, seqno=0, street_mode="walk", transit_mode="Both", less_walking="False", udid="", version="2.0", two_way_routing="True"):
         
         if (two_way_routing == "False"):
             self.two_way_routing = False
@@ -492,11 +495,18 @@ class RouteServer:
             wo.max_walk=max_walk
             wo.walking_overage=walking_overage
             
+            # check for wheelchair street_mode
             if (street_mode == "wheelchair"):
                 wo.with_wheelchair = int(True)
+                wo.transfer_penalty = 180
             else:
                 wo.with_wheelchair = int(False)
             
+            # check for bike street_mode
+            if (street_mode == "bike"):
+                wo.transfer_penalty = 120
+            
+            # check for transit_mode
             if (transit_mode == "Both"):
                 wo.transit_types = int(14)
             elif (transit_mode == "Bus"):
@@ -509,10 +519,6 @@ class RouteServer:
             # check for less_walking flag
             if (less_walking == "True"):
                 wo.walking_reluctance *= 10.0
-            
-            # check for bike or wheelchair street_mode
-            if (street_mode == "bike" or street_mode == "wheelchair"):
-                wo.transfer_penalty *= 10
             
             # create RouteInfo object
             route_info = RouteInfo()
