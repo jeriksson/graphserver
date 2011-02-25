@@ -21,7 +21,6 @@ for _dlldir in _dlldirs:
     _dllpath = os.path.join(_dlldir, 'libgraphserver.so')
     if os.path.exists(_dllpath):
         print _dllpath
-        print 'here'
 	lgs = PyDLL( _dllpath )
         break
 
