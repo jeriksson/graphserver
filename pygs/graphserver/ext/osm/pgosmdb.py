@@ -143,61 +143,6 @@ class PostgresGIS_OSMDB:
         return (float(vertex_coords[vertex_coords.index(' ')+1:]), float(vertex_coords[0:vertex_coords.index(' ')]))
     
     #
-    # method for returning the street name for a graph edge
-    #
-    def get_street_name_from_edge(self, edge_name):
-        
-        # connect to database
-        conn = psycopg2.connect(self.db_connect_string)
-        
-        # grab database cursor
-        cur = conn.cursor()
-        
-        # generate query to grab parent_id for edge matching the edge name
-        parent_id_query = "select parent_id from edges where id='" + edge_name + "'"
-        
-        # execute the query
-        cur.execute(parent_id_query)
-        
-        # fetch the first row from the results
-        first_row = cur.fetchone()
-        
-        # grab parent_id from edge
-        parent_id = str(first_row[0])
-        
-        # generate query to grab tags for way matching the parent id
-        tags_query = "select tags from ways where id='" + parent_id + "'"
-        
-        # execute the query
-        cur.execute(tags_query)
-        
-        # fetch the first row from the results
-        first_row = cur.fetchone()
-        
-        # send commit to the database
-        conn.commit()
-        
-        # create dictionary from returned tags
-        street_dict = eval(first_row[0])
-        
-        # if there is a name for this street
-        if 'name' in street_dict:
-        
-            # store the street name
-            street_name = street_dict['name'].replace("&","&amp;")
-            
-        else:
-        
-            # store an 'Unknown' street name
-            street_name = "Unknown"
-        
-        # close database connection
-        conn.close()
-        
-        # return the street name
-        return street_name
-    
-    #
     # method for returning the street name and path geometry for a graph edge
     #
     def get_street_name_and_path_geometry_from_edge(self, edge_name):
@@ -208,62 +153,23 @@ class PostgresGIS_OSMDB:
         # grab database cursor
         cur = conn.cursor()
         
-        # generate query to grab parent_id for edge matching the edge name
-        parent_id_query = "select parent_id, start_nd, end_nd from edges where id='" + edge_name + "'"
+        # generate query to grab way tags, and start and end node locations
+        street_query = "select ways.tags, ST_AsText(start_node.location), ST_AsText(end_node.location) from edges, nodes as start_node, nodes as end_node, ways where start_node.id=start_nd and end_node.id=end_nd and ways.id=parent_id and edges.id='" + edge_name + "'"
         
         # execute the query
-        cur.execute(parent_id_query)
+        cur.execute(street_query)
         
         # fetch the first row from the results
         first_row = cur.fetchone()
-        
-        # grab parent_id from edge
-        parent_id = str(first_row[0])
-        
-        # grab start node id from edge
-        start_node_id = str(first_row[1])
-        
-        # grab end node id from edge
-        end_node_id = str(first_row[2])
-        
-        # generate query to grab location for node matching the start node id
-        start_node_query = "select ST_AsText(location) from nodes where id='" + start_node_id + "'"
-        
-        # execute the query
-        cur.execute(start_node_query)
-        
-        # fetch the first row from the results
-        first_row = cur.fetchone()
-        
-        # store start node location
-        start_node_loc = str(first_row[0]).replace('POINT(','').replace(')','')
-        
-        # generate query to grab location for node matching the end node id
-        end_node_query = "select ST_AsText(location) from nodes where id='" + end_node_id + "'"
-        
-        # execute the query
-        cur.execute(end_node_query)
-        
-        # fetch the first row from the results
-        first_row = cur.fetchone()
-        
-        # store end node location
-        end_node_loc = str(first_row[0]).replace('POINT(','').replace(')','')
-        
-        # generate query to grab tags for way matching the parent id
-        tags_query = "select tags from ways where id='" + parent_id + "'"
-        
-        # execute the query
-        cur.execute(tags_query)
-        
-        # fetch the first row from the results
-        first_row = cur.fetchone()
-        
-        # send commit to the database
-        conn.commit()
         
         # create dictionary from returned tags
         street_dict = eval(first_row[0])
+        
+        # store start node location
+        start_node_loc = str(first_row[1]).replace('POINT(','').replace(')','')
+        
+        # store end node location
+        end_node_loc = str(first_row[2]).replace('POINT(','').replace(')','')
         
         # if there is a name for this street
         if 'name' in street_dict:
