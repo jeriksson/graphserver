@@ -109,6 +109,7 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
       //add the heuristic value
       
       //kdtree
+      /*
       if (v->cellNumber == -1){
       	getVertexCell(v);	
       }
@@ -117,6 +118,7 @@ gShortestPathTreeRetro( Graph* this, char *from, char *to, State* init_state, Wa
       
       new_dv->weight = new_dv->weight - new_dv->lastAStarValue + heuristic;
       new_dv->lastAStarValue = heuristic;
+      */
       
       long new_w = new_dv->weight;
       // If the new way of getting there is better,
