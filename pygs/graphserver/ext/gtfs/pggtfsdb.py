@@ -7,6 +7,7 @@
 
 import psycopg2
 import time
+import sys
 
 class PostgresGIS_GTFSDB:
     
@@ -49,7 +50,7 @@ class PostgresGIS_GTFSDB:
         # close database connection
         conn.close()
         
-        print "[pggtfsdb_execute," + str(time.time() - start_time) + "]"
+        sys.stderr.write("[pggtfsdb_execute," + str(time.time() - start_time) + "]\n")
         
         # return the query result
         return query_result
@@ -102,7 +103,7 @@ class PostgresGIS_GTFSDB:
         # grab the stop headsign data
         stop_headsign = cur.fetchone()[0]
         
-        print "[get_board_event_data," + str(time.time() - start_time) + "]"
+        sys.stderr.write("[get_board_event_data," + str(time.time() - start_time) + "]\n")
         
         return (agency_id, route_id, route_long_name, route_short_name, route_type, stop_name, stop_lat, stop_lon, parent_station, stop_headsign)
     
@@ -131,7 +132,7 @@ class PostgresGIS_GTFSDB:
         # grab the stop data
         stop_name, stop_lat, stop_lon, parent_station = cur.fetchone()
         
-        print "[get_alight_event_data," + str(time.time() - start_time) + "]"
+        sys.stderr.write("[get_alight_event_data," + str(time.time() - start_time) + "]\n")
         
         return (stop_name, stop_lat, stop_lon, parent_station)
     
