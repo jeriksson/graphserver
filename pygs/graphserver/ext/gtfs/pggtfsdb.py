@@ -6,6 +6,7 @@
 #
 
 import psycopg2
+import time
 
 class PostgresGIS_GTFSDB:
     
@@ -24,6 +25,8 @@ class PostgresGIS_GTFSDB:
     # method for running a remote query against the PostgreSQL database
     #
     def execute(self, query, args=None):
+        
+        start_time = time.time()
         
         # connect to database
         conn = psycopg2.connect(self.db_connect_string)
@@ -46,8 +49,91 @@ class PostgresGIS_GTFSDB:
         # close database connection
         conn.close()
         
+        print "[pggtfsdb_execute," + str(time.time() - start_time) + "]"
+        
         # return the query result
         return query_result
+    
+    #
+    # method for returning the data for a transit board event
+    #
+    def get_board_event_data(self, trip_id, stop_id):
+    
+        #route_desc = list( pggtfsdb.execute( "SELECT routes.route_id, routes.route_long_name, routes.route_short_name, routes.route_type FROM routes, trips WHERE routes.route_id=trips.route_id AND trip_id='" + trip_id + "'") )
+        #agency_id = list( pggtfsdb.execute( "SELECT agency_id FROM routes WHERE route_id='" + str(route_desc[0][0]) + "'") )[0][0]
+        #
+        #stop_desc = list( pggtfsdb.execute( "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
+        #lat, lon = list( pggtfsdb.execute( "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
+        #
+        #stop_headsign = list( pggtfsdb.execute( "SELECT stop_headsign FROM stop_times WHERE trip_id='" + trip_id + "' AND stop_id='" + stop_id + "'") )[0][0]
+        
+        start_time = time.time()
+        
+        # connect to database
+        conn = psycopg2.connect(self.db_connect_string)
+        
+        # grab database cursor
+        cur = conn.cursor()
+        
+        # generate query to get route data
+        route_data_query = "SELECT routes.agency_id, routes.route_id, routes.route_long_name, routes.route_short_name, routes.route_type FROM routes, trips WHERE routes.route_id=trips.route_id AND trip_id='" + trip_id + "'"
+        
+        # execute route data query
+        cur.execute(route_data_query)
+        
+        # grab the route data
+        agency_id, route_id, route_long_name, route_short_name, route_type = cur.fetchone()
+        
+        # generate query to get stop data
+        stop_data_query = "SELECT stop_name, stop_lat, stop_lon, parent_station FROM stops WHERE stop_id='" + stop_id + "'"
+        
+        # execute stop data query
+        cur.execute(stop_data_query)
+        
+        # grab the stop data
+        stop_name, stop_lat, stop_lon, parent_station = cur.fetchone()
+        
+        # generate query to get stop headsign data
+        stop_headsign_query = "SELECT stop_headsign FROM stop_times WHERE trip_id='" + trip_id + "' AND stop_id='" + stop_id + "'"
+        
+        # execute stop headsign query
+        cur.execute(stop_headsign_query)
+        
+        # grab the stop headsign data
+        stop_headsign = cur.fetchone()[0]
+        
+        print "[get_board_event_data," + str(time.time() - start_time) + "]"
+        
+        return (agency_id, route_id, route_long_name, route_short_name, route_type, stop_name, stop_lat, stop_lon, parent_station, stop_headsign)
+    
+    #
+    # method for returning the data for a transit alight event
+    #
+    def get_alight_event_data(self, stop_id):
+        
+        #stop_desc = list( pggtfsdb.execute( "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
+        #lat, lon = list( pggtfsdb.execute( "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
+        
+        start_time = time.time()
+        
+        # connect to database
+        conn = psycopg2.connect(self.db_connect_string)
+        
+        # grab database cursor
+        cur = conn.cursor()
+        
+        # generate query to get stop data
+        stop_data_query = "SELECT stop_name, stop_lat, stop_lon, parent_station FROM stops WHERE stop_id='" + stop_id + "'"
+        
+        # execute stop data query
+        cur.execute(stop_data_query)
+        
+        # grab the stop data
+        stop_name, stop_lat, stop_lon, parent_station = cur.fetchone()
+        
+        print "[get_alight_event_data," + str(time.time() - start_time) + "]"
+        
+        return (stop_name, stop_lat, stop_lon, parent_station)
     
     #
     # method for returning the closest station vertex to a coordinate pair
