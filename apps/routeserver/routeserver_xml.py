@@ -732,7 +732,6 @@ if __name__ == '__main__':
         if (len(walk_path.points) > 0):
             walk_path.arr_time = str(vertex1.payload.time)
             ret_string += _print_walk_path(walk_path, route_info)
-            #ret_string += '</walk>'
             ret_string += '</' + route_info.street_mode + '>'
             walk_path.name = ""
             walk_path.points = []
@@ -741,14 +740,9 @@ if __name__ == '__main__':
         trip_id = vertex2.payload.trip_id
         stop_id = vertex1.label.split("-")[-1]
         
-        route_desc = list( pggtfsdb.execute( "SELECT routes.route_id, routes.route_long_name, routes.route_short_name, routes.route_type FROM routes, trips WHERE routes.route_id=trips.route_id AND trip_id='" + trip_id + "'") )
-        stop_desc = list( pggtfsdb.execute( "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
-        lat, lon = list( pggtfsdb.execute( "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
-        stop_headsign = list( pggtfsdb.execute( "SELECT stop_headsign FROM stop_times WHERE trip_id='" + trip_id + "' AND stop_id='" + stop_id + "'") )[0][0]
-        agency_id = list( pggtfsdb.execute( "SELECT agency_id FROM routes WHERE route_id='" + str(route_desc[0][0]) + "'") )[0][0]
+        agency_id, route_id, route_long_name, route_short_name, route_type, stop_name, stop_lat, stop_lon, parent_station, stop_headsign = pggtfsdb.get_board_event_data(trip_id, stop_id)
         
-        boardtime = str(event_time) #str(TimeHelpers.unix_to_localtime( event_time, "America/Chicago" ))
-        
+        boardtime = str(event_time)
         boardtime_struct = time.localtime(event_time)
         start_of_day = time.mktime([boardtime_struct.tm_year, boardtime_struct.tm_mon, boardtime_struct.tm_mday, 0, 0, 0, boardtime_struct.tm_wday, boardtime_struct.tm_yday, -1])
         
@@ -763,30 +757,24 @@ if __name__ == '__main__':
         
         tt_headsign = stop_headsign.replace(" ","").replace("/","").replace("&","").replace("#","").replace("(","").replace(")","").replace("'","").replace("-","").replace("*","").replace("+","").replace(":","").replace("\t","").lower()
         
-        #stop_desc = stop_desc.replace("&","&amp;")
-        stop_desc = stop_desc.replace("&","and")
+        stop_name = stop_name.replace("&","and")
         stop_headsign = stop_headsign.replace("&","and")
         
         # if this is the first edge in the route
         if (route_info.first_edge):
-            #ret_string += '<walk>'
             ret_string += '<' + route_info.street_mode + '>'
-            ret_string += _print_orig_path(route_info, lat, lon)
-            #ret_string += '</walk>'
+            ret_string += _print_orig_path(route_info, stop_lat, stop_lon)
             ret_string += '</' + route_info.street_mode + '>'
             route_info.first_edge = False
         
-        route_id = str(route_desc[0][0])
         if ("PACE_" in route_id):
-            route_id = str(route_desc[0][2])
+            route_id = route_short_name
         
-        route_type = str(route_desc[0][3])
         if (route_type == "1"):
-            parent_station = list( pggtfsdb.execute( "SELECT parent_station FROM stops WHERE stop_id='" + stop_id + "'") )
             if (len(parent_station) > 0):
-                stop_id = parent_station[0][0]
+                stop_id = parent_station
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_type) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_desc[0][1]) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_desc) + '" board_stop_headsign="' + str(stop_headsign) + '" tt_headsign="' + str(tt_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(lat) + '" board_lon="' + str(lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_type) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_long_name) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_name) + '" board_stop_headsign="' + str(stop_headsign) + '" tt_headsign="' + str(tt_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(stop_lat) + '" board_lon="' + str(stop_lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
@@ -794,24 +782,20 @@ if __name__ == '__main__':
         event_time = vertex1.payload.time
         stop_id = vertex2.label.split("-")[-1]
         
-        stop_desc = list( pggtfsdb.execute( "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
-        lat, lon = list( pggtfsdb.execute( "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
+        stop_name, stop_lat, stop_lon, parent_station = pggtfsdb.get_alight_event_data(stop_id)
         
-        walk_path.lastlat = lat
-        walk_path.lastlon = lon
+        walk_path.lastlat = stop_lat
+        walk_path.lastlon = stop_lon
         
-        alighttime = str(event_time) #str(TimeHelpers.unix_to_localtime( event_time, "America/Chicago" ))
-        #stop_desc = stop_desc.replace("&","&amp;")
-        stop_desc = stop_desc.replace("&","and")
+        alighttime = str(event_time)
+        stop_name = stop_name.replace("&","and")
         
-        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + str(stop_desc) + '" alight_time="' + str(alighttime) + '" alight_lat="' + str(lat) + '" alight_lon="' + str(lon) + '" />'
+        ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + str(stop_name) + '" alight_time="' + str(alighttime) + '" alight_lat="' + str(stop_lat) + '" alight_lon="' + str(stop_lon) + '" />'
         
         # if this is the last edge in the route
         if (route_info.last_edge):
-            #ret_string += '<walk>'
             ret_string += '<' + route_info.street_mode + '>'
-            ret_string += _print_dest_path(route_info, lat, lon)
-            #ret_string += '</walk>'
+            ret_string += _print_dest_path(route_info, stop_lat, stop_lon)
             ret_string += '</' + route_info.street_mode + '>'
         
         return (ret_string, walk_path, route_info)
