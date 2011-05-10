@@ -24,8 +24,32 @@ class PostgresGIS_OSMDB:
     #
     def create_pgosmdb_connection(self):
         
-        # return a database connection
-        return psycopg2.connect(self.db_connect_string)
+        # create a database connection
+        conn = psycopg2.connect(self.db_connect_string)
+        
+        # grab a database cursor
+        cur = conn.cursor()
+        
+        # prepare query for get_osm_vertex_from_coords
+        prepare_dist_query = "PREPARE get_osm_vertex_from_coords (text, text) AS SELECT id, ST_distance_sphere(SetSRID(GeomFromText($1),4326),location) AS dist FROM nodes WHERE endnode_refs > 1 AND location && SetSRID($2::box3d,4326) ORDER BY dist ASC LIMIT 1"
+        
+        # create prepared statement for get_osm_vertex_from_coords
+        cur.execute(prepare_dist_query)
+        
+        # prepare query for get_street_name_and_path_geometry_from_edge
+        prepare_street_query = "PREPARE get_street_name_and_path_geometry_from_edge (text) AS SELECT ways.tags, ST_AsText(start_node.location), ST_AsText(end_node.location) FROM edges, nodes AS start_node, nodes AS end_node, ways WHERE start_node.id=start_nd AND end_node.id=end_nd AND ways.id=parent_id AND edges.id=$1"
+        
+        # create prepared statement for get_street_name_and_path_geometry_from_edge
+        cur.execute(prepare_street_query)
+        
+        # prepare query for get_coords_for_osm_vertex
+        prepare_vertex_query = "PREPARE get_coords_for_osm_vertex (text) AS SELECT ST_AsText(location) FROM nodes WHERE id=$1"
+        
+        # create prepared statement for get_coords_for_osm_vertex
+        cur.execute(prepare_vertex_query)
+        
+        # return database connection
+        return conn
     
     #
     # method to close a database connection
@@ -46,25 +70,14 @@ class PostgresGIS_OSMDB:
         # place coordinates in POINT GIS object
         geom_point = "'POINT(" + str(longitude) + ' ' + str(latitude) + ")'"
         
-        #print "geom_point: " + str(geom_point)
-        
         # longitude/latitude offset
         offset = 0.05
         
         # created BOX3D object for search space
         box3d_coords = "'BOX3D(" + str(longitude - offset) + ' ' + str(latitude - offset) + ',' + str(longitude + offset) + ' ' + str(latitude + offset) + ")'"
         
-        #print "box3d_coords: " + str(box3d_coords)
-        
-        # generate query to search for closest OSM point to the provided coordinates
-        dist_query = 'select id, ST_distance_sphere(SetSRID(GeomFromText(' + geom_point + '),4326),location) as dist from nodes where endnode_refs > 1 order by dist asc limit 1'
-        dist_box3d_query = 'select id, ST_distance_sphere(SetSRID(GeomFromText(' + geom_point + '),4326),location) as dist from nodes where endnode_refs > 1 and location && SetSRID(' + box3d_coords + '::box3d,4326) order by dist asc limit 1'
-        
-        #print "dist_query: " + str(dist_query)
-        #print "dist_box3d_query: " + str(dist_box3d_query)
-        
-        # execute the box3d-enhanced query
-        cur.execute(dist_box3d_query)
+        # execute the box3d-enhanced prepared statement
+        cur.execute("EXECUTE get_osm_vertex_from_coords (" + geom_point + "," + box3d_coords + ")")
         
         # fetch the first row from the results
         first_row = cur.fetchone()
@@ -72,11 +85,8 @@ class PostgresGIS_OSMDB:
         # if the first row contains no results
         if (first_row is None):
             
-            # print
-            #print "first_row is None for OSM coords (" + str(longitude) + "," + str(latitude) + ")"
-            
-            # execute the non-enhanced query
-            cur.execute(dist_query)
+            # execute the non-box3d-enhanced query
+            cur.execute("SELECT id, ST_distance_sphere(SetSRID(GeomFromText(" + geom_point + "),4326),location) AS dist FROM nodes WHERE endnode_refs > 1 ORDER BY dist ASC LIMIT 1")
             
             # fetch the first row from the results
             first_row = cur.fetchone()
@@ -95,11 +105,8 @@ class PostgresGIS_OSMDB:
         # strip 'osm-' prefix from vertex_id
         vertex_id = vertex_id.replace('osm-','')
         
-        # generate query to grab coordinates for vertex
-        vertex_query = "select ST_AsText(location) from nodes where id='" + vertex_id + "'"
-        
-        # execute the query
-        cur.execute(vertex_query)
+        # execute the prepared statement
+        cur.execute("EXECUTE get_coords_for_osm_vertex ('" + vertex_id + "')")
         
         # fetch the first row from the results
         first_row = cur.fetchone()
@@ -120,11 +127,8 @@ class PostgresGIS_OSMDB:
         # grab database cursor
         cur = conn.cursor()
         
-        # generate query to grab way tags, and start and end node locations
-        street_query = "select ways.tags, ST_AsText(start_node.location), ST_AsText(end_node.location) from edges, nodes as start_node, nodes as end_node, ways where start_node.id=start_nd and end_node.id=end_nd and ways.id=parent_id and edges.id='" + edge_name + "'"
-        
-        # execute the query
-        cur.execute(street_query)
+        # execute the prepared statement
+        cur.execute("EXECUTE get_street_name_and_path_geometry_from_edge ('" + edge_name + "')")
         
         # fetch the first row from the results
         first_row = cur.fetchone()
@@ -149,11 +153,8 @@ class PostgresGIS_OSMDB:
             # store an 'Unknown' street name
             street_name = "Unknown"
         
-        # store the path geometry
-        path_geometry = start_node_loc + "," + end_node_loc
-        
         sys.stderr.write("[get_street_name_and_path_geometry_from_edge," + str(time.time() - start_time) + "]\n")
         
         # return the street name and path geometry
-        return (street_name, path_geometry)
+        return (street_name, start_node_loc + "," + end_node_loc)
     
