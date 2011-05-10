@@ -49,7 +49,7 @@ libgraphserver.so: $(OBJECTS)
 
 install:
 	cp libgraphserver.so $(PREFIX)/lib
-	cp libgraphserver.so /usr/local/lib/python2.6/dist-packages/graphserver-0.1-py2.6.egg/graphserver
+	cp libgraphserver.so /usr/local/lib/python2.7/dist-packages/graphserver-0.1-py2.7.egg/graphserver
 	mkdir -p $(PREFIX)/include/graphserver
 	cp fibheap.h $(PREFIX)/include/graphserver
 	cp dirfibheap.h $(PREFIX)/include/graphserver
