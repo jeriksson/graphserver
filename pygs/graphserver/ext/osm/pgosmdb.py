@@ -18,46 +18,27 @@ class PostgresGIS_OSMDB:
         
         # store the connection string
         self.db_connect_string = db_connect_string
-        
-        # connect to database
-        #self.conn = psycopg2.connect(db_connect_string)
     
     #
-    # method for running a remote query against the PostgreSQL database
+    # method to create a database connection
     #
-    def execute(self, query, args=None):
+    def create_pgosmdb_connection(self):
         
-        # connect to database
-        conn = psycopg2.connect(self.db_connect_string)
-        
-        # grab database cursor
-        cur = conn.cursor()
-        
-        # execute remote query with or without arguments
-        if (args is None):
-            cur.execute(query)
-        else:
-            cur.execute(query, args)
-        
-        # send commit to the database
-        conn.commit()
-        
-        # store the query result
-        query_result = cur.fetchall()
+        # return a database connection
+        return psycopg2.connect(self.db_connect_string)
+    
+    #
+    # method to close a database connection
+    #
+    def close_pgosmdb_connection(self, conn):
         
         # close database connection
         conn.close()
-        
-        # return the query result
-        return query_result
     
     #
     # method for returning the closest osm vertex to a coordinate pair
     #
-    def get_osm_vertex_from_coords(self, longitude, latitude):
-        
-        # connect to database
-        conn = psycopg2.connect(self.db_connect_string)
+    def get_osm_vertex_from_coords(self, conn, longitude, latitude):
         
         # grab database cursor
         cur = conn.cursor()
@@ -100,22 +81,13 @@ class PostgresGIS_OSMDB:
             # fetch the first row from the results
             first_row = cur.fetchone()
         
-        # send commit to the database
-        conn.commit()
-        
-        # close database connection
-        conn.close()
-        
         # return osm vertex id
         return ('osm-' + first_row[0], first_row[1])
     
     #
     # method for returning the coordinates (lat, lon) for an osm vertex
     #
-    def get_coords_for_osm_vertex(self, vertex_id):
-        
-        # connect to database
-        conn = psycopg2.connect(self.db_connect_string)
+    def get_coords_for_osm_vertex(self, conn, vertex_id):
         
         # grab database cursor
         cur = conn.cursor()
@@ -132,14 +104,8 @@ class PostgresGIS_OSMDB:
         # fetch the first row from the results
         first_row = cur.fetchone()
         
-        # send commit to the database
-        conn.commit()
-        
         # grab raw coordinates
         vertex_coords = first_row[0].replace('POINT(','').replace(')','')
-        
-        # close database connection
-        conn.close()
         
         # return coordinates (lat, lon)
         return (float(vertex_coords[vertex_coords.index(' ')+1:]), float(vertex_coords[0:vertex_coords.index(' ')]))
@@ -147,12 +113,9 @@ class PostgresGIS_OSMDB:
     #
     # method for returning the street name and path geometry for a graph edge
     #
-    def get_street_name_and_path_geometry_from_edge(self, edge_name):
+    def get_street_name_and_path_geometry_from_edge(self, conn, edge_name):
         
         start_time = time.time()
-        
-        # connect to database
-        conn = psycopg2.connect(self.db_connect_string)
         
         # grab database cursor
         cur = conn.cursor()
@@ -185,9 +148,6 @@ class PostgresGIS_OSMDB:
         
             # store an 'Unknown' street name
             street_name = "Unknown"
-        
-        # close database connection
-        conn.close()
         
         # store the path geometry
         path_geometry = start_node_loc + "," + end_node_loc

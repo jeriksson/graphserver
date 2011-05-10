@@ -161,12 +161,18 @@ class RouteServer:
         ret_string = '<transit trip_id="' + str(trip_id) + '" board_stop_id="' + str(board_stop_id) + '" alight_stop_id="' + str(alight_stop_id) + '">'
         ret_string += '<points>'
         
+        # create database connection
+        pggtfsdb_conn = self.pggtfsdb.create_pggtfsdb_connection()
+        
         sys.stderr.write("[get_transit_path_points," + str(time.time()) + "]\n")
-        for point in self.pggtfsdb.get_transit_path_points(trip_id, board_stop_id, alight_stop_id):
+        for point in self.pggtfsdb.get_transit_path_points(pggtfsdb_conn, trip_id, board_stop_id, alight_stop_id):
             ret_string += '<point lat="' + point[0:point.index(',')] + '" lon="' + point[point.index(',')+1:] + '" />'
         
         ret_string += '</points>'
         ret_string += '</transit>'
+        
+        # close database connection
+        self.pggtfsdb.close_pggtfsdb_connection(pggtfsdb_conn)
         
         sys.stderr.write("[transit_path_exit_point," + str(time.time()) + "]\n")
         yield ret_string
@@ -414,6 +420,13 @@ class RouteServer:
         # initialize spt to 'None' object
         spt = None
         
+        # initialize walk options object
+        wo = WalkOptions()
+        
+        # create database connections
+        pgosmdb_conn = self.pgosmdb.create_pgosmdb_connection()
+        pggtfsdb_conn = self.pggtfsdb.create_pggtfsdb_connection()
+        
         try:
             # if the departure time is not specified, set it
             if (dep_time == 0):
@@ -425,16 +438,16 @@ class RouteServer:
             
             # get origin and destination nodes from osm map
             sys.stderr.write("[get_osm_vertex_from_coords," + str(time.time()) + "]\n")
-            orig_osm, orig_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(origlon, origlat)
-            dest_osm, dest_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(destlon, destlat)
+            orig_osm, orig_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(pgosmdb_conn, origlon, origlat)
+            dest_osm, dest_osm_dist = self.pgosmdb.get_osm_vertex_from_coords(pgosmdb_conn, destlon, destlat)
             
             #print "\nOrigin OSM: " + str(orig_osm) + " (" + str(orig_osm_dist) + ")"
             #print "Destination OSM: " + str(dest_osm) + " (" + str(dest_osm_dist) + ")\n"
             
             # get origin and destination nodes from gtfs database
             sys.stderr.write("[get_station_vertex_from_coords," + str(time.time()) + "]\n")
-            orig_sta, orig_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(origlon, origlat)
-            dest_sta, dest_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(destlon, destlat)
+            orig_sta, orig_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(pggtfsdb_conn, origlon, origlat)
+            dest_sta, dest_sta_dist = self.pggtfsdb.get_station_vertex_from_coords(pggtfsdb_conn, destlon, destlat)
             
             #print "Origin STA: " + str(orig_sta) + " (" + str(orig_sta_dist) + ")"
             #print "Destination STA: " + str(dest_sta) + " (" + str(dest_sta_dist) + ")\n"
@@ -443,21 +456,21 @@ class RouteServer:
             if (orig_osm_dist < orig_sta_dist):
                 origin = orig_osm
                 sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
-                orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(origin)
+                orig_node_lat, orig_node_lon = self.pgosmdb.get_coords_for_osm_vertex(pgosmdb_conn, origin)
             else:
                 origin = orig_sta
                 sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
-                orig_node_lat, orig_node_lon = self.pggtfsdb.get_coords_for_station_vertex(origin)
+                orig_node_lat, orig_node_lon = self.pggtfsdb.get_coords_for_station_vertex(pggtfsdb_conn, origin)
                 
             # get coordinates for destination node
             if (dest_osm_dist < dest_sta_dist):
                 dest = dest_osm
                 sys.stderr.write("[get_coords_for_osm_vertex," + str(time.time()) + "]\n")
-                dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(dest)
+                dest_node_lat, dest_node_lon = self.pgosmdb.get_coords_for_osm_vertex(pgosmdb_conn, dest)
             else:
                 dest = dest_sta
                 sys.stderr.write("[get_coords_for_station_vertex," + str(time.time()) + "]\n")
-                dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(dest)
+                dest_node_lat, dest_node_lon = self.pggtfsdb.get_coords_for_station_vertex(pggtfsdb_conn, dest)
             
             #print "Origin: " + str(origin)
             #print "Destination: " + str(dest) + "\n"
@@ -488,7 +501,7 @@ class RouteServer:
             
             #print "Adjusted departure time: " + str(dep_time)
             
-            wo = WalkOptions()
+            # set walk options
             wo.transfer_penalty=transfer_penalty
             wo.walking_speed=walking_speed
             wo.walking_reluctance=walking_reluctance
@@ -577,7 +590,7 @@ class RouteServer:
                     
                     edgetype = edges[i].payload.__class__
                     if edgetype in self.event_dispatch:
-                        (new_event, walk_path, route_info) = self.event_dispatch[ edges[i].payload.__class__ ]( vertices[i], edges[i], vertices[i+1], walk_path, route_info)
+                        (new_event, walk_path, route_info) = self.event_dispatch[ edges[i].payload.__class__ ]( vertices[i], edges[i], vertices[i+1], walk_path, route_info, pgosmdb_conn, pggtfsdb_conn)
                         curr_route += new_event
                 
                 ret_string += '<route dep_time="' + str(route_info.actual_dep_time) + '" req_dep_time="' + str(dep_time - time_to_orig) + '" arr_time="' + str(route_info.actual_arr_time) + '" req_arr_time="' + str(arr_time) + '" origlat="' + str(origlat) + '" origlon="' + str(origlon) + '" destlat="' + str(destlat) + '" destlon="' + str(destlon) + '" timezone="' + timezone + '" total_time="' + str(route_info.actual_arr_time - route_info.actual_dep_time) + '" total_walk_distance="' + str(int(round(walk_path.total_distance)) + int(round(orig_distance)) + int(round(dest_distance))) + '" walking_speed="' + str(walking_speed) + '" seqno="' + str(seqno) + '" version="' + str(version) + '">' + curr_route + '</route>'
@@ -606,7 +619,12 @@ class RouteServer:
             yield '\n\n--multipart-path_xml-boundary1234\nContent-Type: text/xml\n\n<?xml version="1.0"?><routes></routes>--multipart-path_xml-boundary1234--\n\n '
             
         finally:
-#            yield '\n\n--multipart-path_xml-boundary1234--\n\n'
+            #yield '\n\n--multipart-path_xml-boundary1234--\n\n'
+            
+            # close database connections
+            self.pgosmdb.close_pgosmdb_connection(pgosmdb_conn)
+            self.pggtfsdb.close_pggtfsdb_connection(pggtfsdb_conn)
+            
             # destroy WalkOptions object
             wo.destroy()
             
@@ -726,7 +744,7 @@ if __name__ == '__main__':
     def _get_lat_lon(point):
         return (float(point[point.index(' ')+1:]), float(point[0:point.index(' ')]))
     
-    def board_event_xml(vertex1, edge, vertex2, walk_path, route_info):
+    def board_event_xml(vertex1, edge, vertex2, walk_path, route_info, pgosmdb_conn, pggtfsdb_conn):
         ret_string = ""
         
         if (len(walk_path.points) > 0):
@@ -740,7 +758,7 @@ if __name__ == '__main__':
         trip_id = vertex2.payload.trip_id
         stop_id = vertex1.label.split("-")[-1]
         
-        agency_id, route_id, route_long_name, route_short_name, route_type, stop_name, stop_lat, stop_lon, parent_station, stop_headsign = pggtfsdb.get_board_event_data(trip_id, stop_id)
+        agency_id, route_id, route_long_name, route_short_name, route_type, stop_name, stop_lat, stop_lon, parent_station, stop_headsign = pggtfsdb.get_board_event_data(pggtfsdb_conn, trip_id, stop_id)
         
         boardtime = str(event_time)
         boardtime_struct = time.localtime(event_time)
@@ -778,11 +796,11 @@ if __name__ == '__main__':
         
         return (ret_string, walk_path, route_info)
     
-    def alight_event_xml(vertex1, edge, vertex2, walk_path, route_info):
+    def alight_event_xml(vertex1, edge, vertex2, walk_path, route_info, pgosmdb_conn, pggtfsdb_conn):
         event_time = vertex1.payload.time
         stop_id = vertex2.label.split("-")[-1]
         
-        stop_name, stop_lat, stop_lon, parent_station = pggtfsdb.get_alight_event_data(stop_id)
+        stop_name, stop_lat, stop_lon, parent_station = pggtfsdb.get_alight_event_data(pggtfsdb_conn, stop_id)
         
         walk_path.lastlat = stop_lat
         walk_path.lastlon = stop_lon
@@ -800,7 +818,7 @@ if __name__ == '__main__':
         
         return (ret_string, walk_path, route_info)
     
-    def headwayboard_event_xml(vertex1, edge, vertex2, walk_path, route_info):
+    def headwayboard_event_xml(vertex1, edge, vertex2, walk_path, route_info, pgosmdb_conn, pggtfsdb_conn):
         ret_string = ""
         
         if (len(walk_path.points) > 0):
@@ -815,11 +833,11 @@ if __name__ == '__main__':
         trip_id = vertex2.payload.trip_id
         stop_id = vertex1.label.split("-")[-1]
         
-        route_desc = list( pggtfsdb.execute( "SELECT routes.route_id, routes.route_long_name, routes.route_type FROM routes, trips WHERE routes.route_id=trips.route_id AND trip_id='" + trip_id + "'") )
-        stop_desc = list( pggtfsdb.execute( "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
-        lat, lon = list( pggtfsdb.execute( "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
-        stop_headsign = list( pggtfsdb.execute( "SELECT stop_headsign FROM stop_times WHERE trip_id='" + trip_id + "' AND stop_id='" + stop_id + "'") )[0][0]
-        agency_id = list( pggtfsdb.execute( "SELECT agency_id FROM routes WHERE route_id='" + str(route_desc[0][0]) + "'") )[0][0]
+        route_desc = list( pggtfsdb.execute(pggtfsdb_conn, "SELECT routes.route_id, routes.route_long_name, routes.route_type FROM routes, trips WHERE routes.route_id=trips.route_id AND trip_id='" + trip_id + "'") )
+        stop_desc = list( pggtfsdb.execute(pggtfsdb_conn, "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
+        lat, lon = list( pggtfsdb.execute(pggtfsdb_conn, "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
+        stop_headsign = list( pggtfsdb.execute(pggtfsdb_conn, "SELECT stop_headsign FROM stop_times WHERE trip_id='" + trip_id + "' AND stop_id='" + stop_id + "'") )[0][0]
+        agency_id = list( pggtfsdb.execute(pggtfsdb_conn, "SELECT agency_id FROM routes WHERE route_id='" + str(route_desc[0][0]) + "'") )[0][0]
         
         boardtime = str(event_time) #str(TimeHelpers.unix_to_localtime( event_time, "America/Chicago" ))
         
@@ -852,12 +870,12 @@ if __name__ == '__main__':
         
         return (ret_string, walk_path, route_info)
     
-    def headwayalight_event_xml(vertex1, edge, vertex2, walk_path, route_info):
+    def headwayalight_event_xml(vertex1, edge, vertex2, walk_path, route_info, pgosmdb_conn, pggtfsdb_conn):
         event_time = vertex1.payload.time
         stop_id = vertex2.label.split("-")[-1]
         
-        stop_desc = list( pggtfsdb.execute( "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
-        lat, lon = list( pggtfsdb.execute( "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
+        stop_desc = list( pggtfsdb.execute(pggtfsdb_conn, "SELECT stop_name FROM stops WHERE stop_id='" + stop_id + "'") )[0][0]
+        lat, lon = list( pggtfsdb.execute(pggtfsdb_conn, "SELECT stop_lat, stop_lon FROM stops WHERE stop_id='" + stop_id + "'") )[0]
         
         walk_path.lastlat = lat
         walk_path.lastlon = lon
@@ -906,12 +924,12 @@ if __name__ == '__main__':
                 full_path.append(point)
         
     
-    def street_event_xml(vertex1, edge, vertex2, walk_path, route_info):
+    def street_event_xml(vertex1, edge, vertex2, walk_path, route_info, pgosmdb_conn, pggtfsdb_conn):
         # initialize return string to empty
         ret_string = ""
         
         # get street name and path geometry from edge
-        (street_name, path_str) = pgosmdb.get_street_name_and_path_geometry_from_edge(edge.payload.name)
+        (street_name, path_str) = pgosmdb.get_street_name_and_path_geometry_from_edge(pgosmdb_conn, edge.payload.name)
         
         if (walk_path.name == ""):
             walk_path.name = street_name
