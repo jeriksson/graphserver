@@ -6,8 +6,6 @@
 #
 
 import psycopg2
-import time
-import sys
 
 class PostgresGIS_GTFSDB:
     
@@ -94,8 +92,6 @@ class PostgresGIS_GTFSDB:
     #
     def get_board_event_data(self, conn, trip_id, stop_id):
         
-        start_time = time.time()
-        
         # grab database cursor
         cur = conn.cursor()
         
@@ -117,16 +113,12 @@ class PostgresGIS_GTFSDB:
         # grab the stop headsign data
         stop_headsign = cur.fetchone()[0]
         
-        sys.stderr.write("[get_board_event_data," + str(time.time() - start_time) + "]\n")
-        
         return (agency_id, route_id, route_long_name, route_short_name, route_type, stop_name, stop_lat, stop_lon, parent_station, stop_headsign)
     
     #
     # method for returning the data for a transit alight event
     #
     def get_alight_event_data(self, conn, stop_id):
-        
-        start_time = time.time()
         
         # grab database cursor
         cur = conn.cursor()
@@ -136,8 +128,6 @@ class PostgresGIS_GTFSDB:
         
         # grab the stop data
         stop_name, stop_lat, stop_lon, parent_station = cur.fetchone()
-        
-        sys.stderr.write("[get_alight_event_data," + str(time.time() - start_time) + "]\n")
         
         return (stop_name, stop_lat, stop_lon, parent_station)
     

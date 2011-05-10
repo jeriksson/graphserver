@@ -6,8 +6,6 @@
 #
 
 import psycopg2
-import time
-import sys
 
 class PostgresGIS_OSMDB:
     
@@ -122,8 +120,6 @@ class PostgresGIS_OSMDB:
     #
     def get_street_name_and_path_geometry_from_edge(self, conn, edge_name):
         
-        start_time = time.time()
-        
         # grab database cursor
         cur = conn.cursor()
         
@@ -152,8 +148,6 @@ class PostgresGIS_OSMDB:
         
             # store an 'Unknown' street name
             street_name = "Unknown"
-        
-        sys.stderr.write("[get_street_name_and_path_geometry_from_edge," + str(time.time() - start_time) + "]\n")
         
         # return the street name and path geometry
         return (street_name, start_node_loc + "," + end_node_loc)
