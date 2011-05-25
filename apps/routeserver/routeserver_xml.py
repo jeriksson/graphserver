@@ -773,7 +773,7 @@ if __name__ == '__main__':
         
         boardtime_offsets = ",".join(boardtime_offsets_list)
         
-        tt_headsign = stop_headsign.replace(" ","").replace("/","").replace("&","").replace("#","").replace("(","").replace(")","").replace("'","").replace("-","").replace("*","").replace("+","").replace(":","").replace("\t","").lower()
+        tt_headsign = stop_headsign.replace(' ','').replace('/','').replace('&','').replace('#','').replace('(','').replace(')','').replace('\'','').replace('-','').replace('*','').replace('+','').replace(':','').replace('\t','').lower()
         
         stop_name = stop_name.replace("&","and")
         stop_headsign = stop_headsign.replace("&","and")
@@ -785,14 +785,11 @@ if __name__ == '__main__':
             ret_string += '</' + route_info.street_mode + '>'
             route_info.first_edge = False
         
-        if ("PACE_" in route_id):
-            route_id = route_short_name
-        
         if (route_type == "1"):
             if (len(parent_station) > 0):
                 stop_id = parent_station
         
-        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_type) + '" route_id="' + str(route_id) + '" route_long_name="' + str(route_long_name) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_name) + '" board_stop_headsign="' + str(stop_headsign) + '" tt_headsign="' + str(tt_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(stop_lat) + '" board_lon="' + str(stop_lon) + '"'
+        ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_type) + '" route_id="' + str(route_short_name) + '" route_long_name="' + str(route_long_name) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_name) + '" board_stop_headsign="' + str(stop_headsign) + '" tt_headsign="' + str(tt_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(stop_lat) + '" board_lon="' + str(stop_lon) + '"'
         
         return (ret_string, walk_path, route_info)
     
