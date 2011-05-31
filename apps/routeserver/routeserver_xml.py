@@ -158,6 +158,12 @@ class RouteServer:
         
         sys.stderr.write("[transit_path_entry_point," + str(time.time()) + "]\n")
         
+        if ((not board_stop_id.startswith("METRA_")) and (not board_stop_id.startswith("PACE_"))):
+            board_stop_id = str("CTA_" + board_stop_id)
+        
+        if ((not alight_stop_id.startswith("METRA_")) and (not alight_stop_id.startswith("PACE_"))):
+            alight_stop_id = str("CTA_" + alight_stop_id)
+        
         ret_string = '<transit trip_id="' + str(trip_id) + '" board_stop_id="' + str(board_stop_id) + '" alight_stop_id="' + str(alight_stop_id) + '">'
         ret_string += '<points>'
         
