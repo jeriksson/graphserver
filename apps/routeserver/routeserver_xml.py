@@ -789,6 +789,9 @@ if __name__ == '__main__':
             if (len(parent_station) > 0):
                 stop_id = parent_station
         
+        if (stop_id.startswith("CTA_")):
+            stop_id = stop_id.replace("CTA_","")
+        
         ret_string += '<transit agency_id="' + str(agency_id) + '" route_type="' + str(route_type) + '" route_id="' + str(route_short_name) + '" route_long_name="' + str(route_long_name) + '" trip_id="' + str(trip_id) + '" board_stop_id="' + str(stop_id) + '" board_stop="' + str(stop_name) + '" board_stop_headsign="' + str(stop_headsign) + '" tt_headsign="' + str(tt_headsign) + '" board_time="' + str(boardtime) + '" board_time_offsets="' + str(boardtime_offsets) + '" board_lat="' + str(stop_lat) + '" board_lon="' + str(stop_lon) + '"'
         
         return (ret_string, walk_path, route_info)
@@ -804,6 +807,9 @@ if __name__ == '__main__':
         
         alighttime = str(event_time)
         stop_name = stop_name.replace("&","and")
+        
+        if (stop_id.startswith("CTA_")):
+            stop_id = stop_id.replace("CTA_","")
         
         ret_string = ' alight_stop_id="' + str(stop_id) + '" alight_stop="' + str(stop_name) + '" alight_time="' + str(alighttime) + '" alight_lat="' + str(stop_lat) + '" alight_lon="' + str(stop_lon) + '" />'
         
