@@ -158,7 +158,7 @@ class PostgresGIS_GTFSDB:
         if (first_row is None):
             
             # execute the non-box3d-enhanced query
-            cur.execute("SELECT stop_id, ST_distance_sphere(SetSRID(GeomFromText(' + geom_point + '),4326),location) AS dist FROM stops ORDER BY dist ASC LIMIT 1")
+            cur.execute("SELECT stop_id, ST_distance_sphere(SetSRID(GeomFromText(" + geom_point + "),4326),location) AS dist FROM stops ORDER BY dist ASC LIMIT 1")
             
             # fetch the first row from the results
             first_row = cur.fetchone()
