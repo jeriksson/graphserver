@@ -147,7 +147,8 @@ class GTFSDatabase:
                            ("trip_id",    None, None),
                            ("service_id", None, None),
                            ("shape_id", None, None),
-                           ("trip_headsign", None, None)))
+                           ("trip_headsign", None, None),
+                           ("direction", None, None)))
     ROUTES_DEF = ("routes", (("route_id", None, None),
                              ("route_short_name", None, None),
                              ("route_long_name", None, None),
