@@ -29,7 +29,7 @@ class PostgresGIS_OSMDB:
         cur = conn.cursor()
         
         # prepare query for get_osm_vertex_from_coords
-        prepare_dist_query = "PREPARE get_osm_vertex_from_coords (text, text) AS SELECT id, ST_distance_sphere(SetSRID(GeomFromText($1),4326),location) AS dist FROM nodes WHERE endnode_refs > 1 AND location && SetSRID($2::box3d,4326) ORDER BY dist ASC LIMIT 1"
+        prepare_dist_query = "PREPARE get_osm_vertex_from_coords (text, text) AS SELECT id, ST_distance_sphere(ST_SetSRID(ST_GeomFromText($1),4326),location) AS dist FROM nodes WHERE endnode_refs > 1 AND location && ST_SetSRID($2::box3d,4326) ORDER BY dist ASC LIMIT 1"
         
         # create prepared statement for get_osm_vertex_from_coords
         cur.execute(prepare_dist_query)
@@ -84,7 +84,7 @@ class PostgresGIS_OSMDB:
         if (first_row is None):
             
             # execute the non-box3d-enhanced query
-            cur.execute("SELECT id, ST_distance_sphere(SetSRID(GeomFromText(" + geom_point + "),4326),location) AS dist FROM nodes WHERE endnode_refs > 1 ORDER BY dist ASC LIMIT 1")
+            cur.execute("SELECT id, ST_distance_sphere(ST_SetSRID(ST_GeomFromText(" + geom_point + "),4326),location) AS dist FROM nodes WHERE endnode_refs > 1 ORDER BY dist ASC LIMIT 1")
             
             # fetch the first row from the results
             first_row = cur.fetchone()
